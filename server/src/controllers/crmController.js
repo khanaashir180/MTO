@@ -2436,7 +2436,7 @@ async function updateOpportunity(req, res, next) {
 
     const needsClosedWonApproval = state.stage === 'CLOSED_WON'
       && current.stage !== 'CLOSED_WON'
-      && !['SUPER_USER', 'FINANCE'].includes(req.user.role);
+      && !req.user.permissions?.crm_manage_approvals;
     if (needsClosedWonApproval) {
       const requestedPayload = {
         title: title !== undefined ? (String(title || '').trim() || current.title) : current.title,
@@ -3952,9 +3952,6 @@ async function listApprovals(req, res, next) {
 async function decideApproval(req, res, next) {
   const client = await pool.connect();
   try {
-    if (!['SUPER_USER', 'FINANCE'].includes(req.user.role)) {
-      throw new ApiError(403, 'Only SUPER_USER or FINANCE can decide approvals');
-    }
     const approvalId = Number(req.params.id);
     if (!Number.isInteger(approvalId) || approvalId <= 0) throw new ApiError(400, 'Invalid approval id');
     const decision = String(req.body?.status || '').toUpperCase();
@@ -4444,8 +4441,8 @@ async function createSavedView(req, res, next) {
     const normalizedScope = normalizeSavedViewScope(scope);
     const trimmedName = String(viewName || '').trim();
     if (!trimmedName) throw new ApiError(400, 'viewName is required');
-    if (normalizedScope === 'SHARED' && req.user.role !== 'SUPER_USER') {
-      throw new ApiError(403, 'Only SUPER_USER can create shared views');
+    if (normalizedScope === 'SHARED' && !req.user.permissions?.crm_manage_approvals) {
+      throw new ApiError(403, 'Shared views require CRM approval rights');
     }
 
     await client.query('BEGIN');
@@ -4495,13 +4492,13 @@ async function updateSavedView(req, res, next) {
     );
     const current = found.rows[0];
     if (!current) throw new ApiError(404, 'Saved view not found');
-    if (current.owner_id !== req.user.id && req.user.role !== 'SUPER_USER') {
-      throw new ApiError(403, 'Only owner or super user can update this view');
+    if (current.owner_id !== req.user.id && !req.user.permissions?.crm_manage_approvals) {
+      throw new ApiError(403, 'Only the owner or a CRM approver can update this view');
     }
 
     const nextScope = scope !== undefined ? normalizeSavedViewScope(scope) : current.scope;
-    if (nextScope === 'SHARED' && req.user.role !== 'SUPER_USER') {
-      throw new ApiError(403, 'Only SUPER_USER can set shared scope');
+    if (nextScope === 'SHARED' && !req.user.permissions?.crm_manage_approvals) {
+      throw new ApiError(403, 'Shared views require CRM approval rights');
     }
     const nextName = viewName !== undefined ? (String(viewName || '').trim() || current.view_name) : current.view_name;
     const nextDefinition = definition !== undefined ? definition : current.definition;
@@ -4550,8 +4547,8 @@ async function deleteSavedView(req, res, next) {
     );
     const current = found.rows[0];
     if (!current) throw new ApiError(404, 'Saved view not found');
-    if (current.owner_id !== req.user.id && req.user.role !== 'SUPER_USER') {
-      throw new ApiError(403, 'Only owner or super user can delete this view');
+    if (current.owner_id !== req.user.id && !req.user.permissions?.crm_manage_approvals) {
+      throw new ApiError(403, 'Only the owner or a CRM approver can delete this view');
     }
 
     await client.query('DELETE FROM crm_saved_views WHERE id = $1', [viewId]);
@@ -4600,8 +4597,6 @@ async function upsertAccountShare(req, res, next) {
     if (!Number.isInteger(targetUserId) || targetUserId <= 0) throw new ApiError(400, 'Invalid userId');
     const normalizedAccess = String(accessLevel || '').trim().toUpperCase();
     if (!['VIEW', 'EDIT'].includes(normalizedAccess)) throw new ApiError(400, 'Invalid access level');
-    if (!['SUPER_USER', 'FINANCE'].includes(req.user.role)) throw new ApiError(403, 'Insufficient permissions to manage shares');
-
     await client.query('BEGIN');
     await client.query(
       `INSERT INTO crm_account_shares (account_id, user_id, access_level, created_by, created_at)
@@ -4634,8 +4629,6 @@ async function deleteAccountShare(req, res, next) {
     const shareId = Number(req.params.shareId);
     if (!Number.isInteger(accountId) || accountId <= 0) throw new ApiError(400, 'Invalid customer account id');
     if (!Number.isInteger(shareId) || shareId <= 0) throw new ApiError(400, 'Invalid share id');
-    if (!['SUPER_USER', 'FINANCE'].includes(req.user.role)) throw new ApiError(403, 'Insufficient permissions to manage shares');
-
     await client.query('BEGIN');
     await client.query('DELETE FROM crm_account_shares WHERE id = $1 AND account_id = $2', [shareId, accountId]);
     await client.query('COMMIT');
@@ -4898,7 +4891,6 @@ async function listAutomationRules(req, res, next) {
 async function updateAutomationRule(req, res, next) {
   const client = await pool.connect();
   try {
-    if (req.user.role !== 'SUPER_USER') throw new ApiError(403, 'Only SUPER_USER can modify automation rules');
     const ruleId = Number(req.params.id);
     if (!Number.isInteger(ruleId) || ruleId <= 0) throw new ApiError(400, 'Invalid automation rule id');
     const { isActive } = req.body || {};
