@@ -180,7 +180,7 @@ describe('API smoke tests', () => {
 
     const allowed = await request(app)
       .get('/metrics')
-      .set('Authorization', 'Bearer metrics-test-token');
+      .set('Authorization', `Bearer ${process.env.METRICS_TOKEN}`);
     expect(allowed.status).toBe(200);
     expect(String(allowed.text || '')).toMatch(/mto_http_requests_total/);
   });
