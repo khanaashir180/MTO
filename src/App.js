@@ -1,33 +1,51 @@
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useEffect, useMemo, useState } from 'react';
 import './index.css';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { OutletsProvider } from './context/OutletsContext';
 import { useSocket } from './hooks/useSocket';
-import LoginView from './components/LoginView';
-import OrderForm from './components/OrderForm';
-import RetailDashboard from './components/RetailDashboard';
-import ProductionDashboard from './components/ProductionDashboard';
-import SettingsPage from './components/SettingsPage';
-import VerificationConsole from './components/VerificationConsole';
-import StageDetailPage from './components/StageDetailPage';
-import SalesReportPage from './components/SalesReportPage';
-import FinancePage from './components/FinancePage';
-import CRMPage from './components/CRMPage';
-import TrialBalancePage from './components/TrialBalancePage';
-import StoreDeliveryDashboard from './components/StoreDeliveryDashboard';
-import RetailHeadOutletPage from './components/RetailHeadOutletPage';
-import MRPPage from './components/MRPPage';
-import RawMaterialStorePage from './components/RawMaterialStorePage';
-import RawStoreReportsPage from './components/RawStoreReportsPage';
-import RawStoreSettingsPage from './components/RawStoreSettingsPage';
-import RawStoreRoutingPage from './components/RawStoreRoutingPage';
-import RawStoreScannerPage from './components/RawStoreScannerPage';
-import AcceptInvitePage from './components/AcceptInvitePage';
-import ConfirmEmailChangePage from './components/ConfirmEmailChangePage';
-import ProfilePage from './components/ProfilePage';
-import SuperAdminConsolePage from './components/SuperAdminConsolePage';
-import ExecutiveKPIDashboard from './components/ExecutiveKPIDashboard';
-import PlatformOpsPage from './components/PlatformOpsPage';
+
+const LoginView = lazy(() => import('./components/LoginView'));
+const OrderForm = lazy(() => import('./components/OrderForm'));
+const RetailDashboard = lazy(() => import('./components/RetailDashboard'));
+const ProductionDashboard = lazy(() => import('./components/ProductionDashboard'));
+const SettingsPage = lazy(() => import('./components/SettingsPage'));
+const VerificationConsole = lazy(() => import('./components/VerificationConsole'));
+const StageDetailPage = lazy(() => import('./components/StageDetailPage'));
+const SalesReportPage = lazy(() => import('./components/SalesReportPage'));
+const FinancePage = lazy(() => import('./components/FinancePage'));
+const CRMPage = lazy(() => import('./components/CRMPage'));
+const TrialBalancePage = lazy(() => import('./components/TrialBalancePage'));
+const StoreDeliveryDashboard = lazy(() => import('./components/StoreDeliveryDashboard'));
+const RetailHeadOutletPage = lazy(() => import('./components/RetailHeadOutletPage'));
+const MRPPage = lazy(() => import('./components/MRPPage'));
+const RawMaterialStorePage = lazy(() => import('./components/RawMaterialStorePage'));
+const RawStoreReportsPage = lazy(() => import('./components/RawStoreReportsPage'));
+const RawStoreSettingsPage = lazy(() => import('./components/RawStoreSettingsPage'));
+const RawStoreRoutingPage = lazy(() => import('./components/RawStoreRoutingPage'));
+const RawStoreScannerPage = lazy(() => import('./components/RawStoreScannerPage'));
+const AcceptInvitePage = lazy(() => import('./components/AcceptInvitePage'));
+const ConfirmEmailChangePage = lazy(() => import('./components/ConfirmEmailChangePage'));
+const ProfilePage = lazy(() => import('./components/ProfilePage'));
+const SuperAdminConsolePage = lazy(() => import('./components/SuperAdminConsolePage'));
+const ExecutiveKPIDashboard = lazy(() => import('./components/ExecutiveKPIDashboard'));
+const PlatformOpsPage = lazy(() => import('./components/PlatformOpsPage'));
+
+function WorkspaceFallback({ title = 'Loading workspace...' }) {
+  return (
+    <section className="card">
+      <h2>{title}</h2>
+      <p>Please wait while this module loads.</p>
+    </section>
+  );
+}
+
+function renderDeferred(node, title) {
+  return (
+    <Suspense fallback={<WorkspaceFallback title={title} />}>
+      {node}
+    </Suspense>
+  );
+}
 
 function AppShell() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -113,13 +131,13 @@ function AppShell() {
   const showTopNav = useMemo(() => Boolean(user), [user]);
 
   if (!isAuthenticated) {
-    if (pageMode === 'accept-invite') return <AcceptInvitePage />;
-    if (pageMode === 'confirm-email-change') return <ConfirmEmailChangePage />;
-    return <LoginView />;
+    if (pageMode === 'accept-invite') return renderDeferred(<AcceptInvitePage />, 'Loading invite...');
+    if (pageMode === 'confirm-email-change') return renderDeferred(<ConfirmEmailChangePage />, 'Loading confirmation...');
+    return renderDeferred(<LoginView />, 'Loading sign in...');
   }
 
   if (pageMode === 'profile') {
-    return <ProfilePage />;
+    return renderDeferred(<ProfilePage />, 'Loading profile...');
   }
 
   if (pageMode === 'admin') {
@@ -155,7 +173,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <SuperAdminConsolePage />
+        {renderDeferred(<SuperAdminConsolePage />, 'Loading admin console...')}
       </main>
     );
   }
@@ -198,7 +216,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <VerificationConsole refreshSignal={refreshSignal} />
+        {renderDeferred(<VerificationConsole refreshSignal={refreshSignal} />, 'Loading verification...')}
       </main>
     );
   }
@@ -240,7 +258,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <StageDetailPage stageName={stagePageName} refreshSignal={refreshSignal} />
+        {renderDeferred(<StageDetailPage stageName={stagePageName} refreshSignal={refreshSignal} />, 'Loading stage detail...')}
       </main>
     );
   }
@@ -278,7 +296,10 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <ProductionDashboard refreshSignal={refreshSignal} user={user} lockedWorkspace={productionWorkspace} />
+        {renderDeferred(
+          <ProductionDashboard refreshSignal={refreshSignal} user={user} lockedWorkspace={productionWorkspace} />,
+          'Loading production...'
+        )}
       </main>
     );
   }
@@ -316,7 +337,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <SalesReportPage refreshSignal={refreshSignal} />
+        {renderDeferred(<SalesReportPage refreshSignal={refreshSignal} />, 'Loading sales report...')}
       </main>
     );
   }
@@ -354,7 +375,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <ExecutiveKPIDashboard refreshSignal={refreshSignal} />
+        {renderDeferred(<ExecutiveKPIDashboard refreshSignal={refreshSignal} />, 'Loading executive KPI...')}
       </main>
     );
   }
@@ -392,7 +413,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <PlatformOpsPage />
+        {renderDeferred(<PlatformOpsPage />, 'Loading platform ops...')}
       </main>
     );
   }
@@ -430,11 +451,14 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <RetailDashboard
-          refreshSignal={refreshSignal}
-          lockedHeadWorkspace={retailHeadWorkspace || 'overview'}
-          lockedOutletName={retailHeadOutlet}
-        />
+        {renderDeferred(
+          <RetailDashboard
+            refreshSignal={refreshSignal}
+            lockedHeadWorkspace={retailHeadWorkspace || 'overview'}
+            lockedOutletName={retailHeadOutlet}
+          />,
+          'Loading retail head workspace...'
+        )}
       </main>
     );
   }
@@ -472,7 +496,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <RetailHeadOutletPage outletName={retailHeadOutlet} />
+        {renderDeferred(<RetailHeadOutletPage outletName={retailHeadOutlet} />, 'Loading outlet drilldown...')}
       </main>
     );
   }
@@ -510,7 +534,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <StoreDeliveryDashboard refreshSignal={refreshSignal} />
+        {renderDeferred(<StoreDeliveryDashboard refreshSignal={refreshSignal} />, 'Loading store delivery...')}
       </main>
     );
   }
@@ -548,7 +572,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <FinancePage refreshSignal={refreshSignal} />
+        {renderDeferred(<FinancePage refreshSignal={refreshSignal} />, 'Loading finance...')}
       </main>
     );
   }
@@ -586,7 +610,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <CRMPage refreshSignal={refreshSignal} lockedWorkspace={crmModuleName} />
+        {renderDeferred(<CRMPage refreshSignal={refreshSignal} lockedWorkspace={crmModuleName} />, 'Loading CRM...')}
       </main>
     );
   }
@@ -624,7 +648,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <MRPPage refreshSignal={refreshSignal} />
+        {renderDeferred(<MRPPage refreshSignal={refreshSignal} />, 'Loading MRP...')}
       </main>
     );
   }
@@ -662,7 +686,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <RawMaterialStorePage refreshSignal={refreshSignal} />
+        {renderDeferred(<RawMaterialStorePage refreshSignal={refreshSignal} />, 'Loading raw store...')}
       </main>
     );
   }
@@ -699,7 +723,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <RawStoreReportsPage refreshSignal={refreshSignal} />
+        {renderDeferred(<RawStoreReportsPage refreshSignal={refreshSignal} />, 'Loading raw store reports...')}
       </main>
     );
   }
@@ -736,7 +760,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <RawStoreSettingsPage refreshSignal={refreshSignal} />
+        {renderDeferred(<RawStoreSettingsPage refreshSignal={refreshSignal} />, 'Loading raw store settings...')}
       </main>
     );
   }
@@ -773,7 +797,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <RawStoreRoutingPage refreshSignal={refreshSignal} />
+        {renderDeferred(<RawStoreRoutingPage refreshSignal={refreshSignal} />, 'Loading raw store routing...')}
       </main>
     );
   }
@@ -810,7 +834,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <RawStoreScannerPage refreshSignal={refreshSignal} />
+        {renderDeferred(<RawStoreScannerPage refreshSignal={refreshSignal} />, 'Loading raw store scanner...')}
       </main>
     );
   }
@@ -848,7 +872,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <TrialBalancePage refreshSignal={refreshSignal} />
+        {renderDeferred(<TrialBalancePage refreshSignal={refreshSignal} />, 'Loading trial balance...')}
       </main>
     );
   }
@@ -865,7 +889,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <FinancePage refreshSignal={refreshSignal} />
+        {renderDeferred(<FinancePage refreshSignal={refreshSignal} />, 'Loading finance...')}
       </main>
     );
   }
@@ -882,7 +906,7 @@ function AppShell() {
             <button onClick={logout}>Logout</button>
           </div>
         </header>
-        <CRMPage refreshSignal={refreshSignal} />
+        {renderDeferred(<CRMPage refreshSignal={refreshSignal} />, 'Loading CRM...')}
       </main>
     );
   }
@@ -1047,31 +1071,40 @@ function AppShell() {
           {showOrderForm && canCreateOrder && (
             <div className="modal-overlay" onClick={() => setShowOrderForm(false)}>
               <div className="modal-card" onClick={(e) => e.stopPropagation()}>
-                <OrderForm
-                  initialOrderType={newOrderType}
-                  onCreated={() => {
-                    setShowOrderForm(false);
-                    setRefreshSignal((v) => v + 1);
-                  }}
-                  onCancel={() => setShowOrderForm(false)}
-                />
+                {renderDeferred(
+                  <OrderForm
+                    initialOrderType={newOrderType}
+                    onCreated={() => {
+                      setShowOrderForm(false);
+                      setRefreshSignal((v) => v + 1);
+                    }}
+                    onCancel={() => setShowOrderForm(false)}
+                  />,
+                  'Loading order form...'
+                )}
               </div>
             </div>
           )}
 
-          <RetailDashboard
-            refreshSignal={refreshSignal}
-            onCreateOrder={(type) => {
-              setNewOrderType(type);
-              setShowOrderForm(true);
-            }}
-          />
+          {renderDeferred(
+            <RetailDashboard
+              refreshSignal={refreshSignal}
+              onCreateOrder={(type) => {
+                setNewOrderType(type);
+                setShowOrderForm(true);
+              }}
+            />,
+            'Loading retail dashboard...'
+          )}
         </>
       )}
 
-      {canSettings && activeView === 'settings' && <SettingsPage user={user} />}
+      {canSettings && activeView === 'settings' && renderDeferred(<SettingsPage user={user} />, 'Loading settings...')}
 
-      {canProduction && activeView === 'dashboard' && <ProductionDashboard refreshSignal={refreshSignal} user={user} />}
+      {canProduction && activeView === 'dashboard' && renderDeferred(
+        <ProductionDashboard refreshSignal={refreshSignal} user={user} />,
+        'Loading production dashboard...'
+      )}
     </main>
   );
 }
