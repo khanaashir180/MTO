@@ -1,8 +1,10 @@
 const pool = require('../config/db');
 const { ApiError } = require('../utils/errors');
 
+const OUTLET_SCOPED_FINANCE_ROLES = new Set(['RETAIL', 'RETAIL_STAFF', 'SHOP_MANAGER']);
+
 function getFinanceOutletScope(req) {
-  if (req.user?.role === 'RETAIL' && req.user?.outlet_name) {
+  if (OUTLET_SCOPED_FINANCE_ROLES.has(req.user?.role) && req.user?.outlet_name) {
     return String(req.user.outlet_name);
   }
   return null;
