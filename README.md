@@ -29,12 +29,12 @@ Full-stack production and retail workflow system with React frontend, Node.js/Ex
 ## Install
 1. Install frontend deps:
 ```bash
-npm install
+npm ci
 ```
 2. Install backend deps:
 ```bash
 cd server
-npm install
+npm ci
 ```
 
 ## Database Setup
@@ -159,8 +159,12 @@ npm run restore:db -- ..\\server\\backups\\mto-backup-<timestamp>.dump
 ## CI
 - GitHub Actions workflow added: `.github/workflows/ci.yml`
 - Pipeline runs:
-  - frontend install + build
+  - frontend clean install + build
   - server install + tests
+
+## Handover
+- Architecture summary: [ARCHITECTURE.md](/c:/Users/AASHIR180/Desktop/mto/mto/ARCHITECTURE.md)
+- Team handover checklist: [HANDOVER.md](/c:/Users/AASHIR180/Desktop/mto/mto/HANDOVER.md)
 
 ## Key API Routes
 - `POST /api/auth/login`

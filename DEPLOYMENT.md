@@ -28,7 +28,7 @@ Public traffic should hit only ports `80` and `443`.
 ## Release Process
 
 1. Back up the database:
-   `POSTGRES_USER=... POSTGRES_DB=... ./deploy/backup-db.sh`
+   `./deploy/backup-db.sh`
 2. Pull the latest code
 3. Rebuild and restart:
    `docker compose --env-file .env.production -f docker-compose.production.yml up --build -d`
@@ -43,7 +43,7 @@ If an app release fails but the schema is still compatible:
 - redeploy the previous app image/code
 
 If the database must be restored:
-- `POSTGRES_USER=... POSTGRES_DB=... ./deploy/restore-db.sh ./deploy/backups/<file>.dump`
+- `./deploy/restore-db.sh ./deploy/backups/<file>.dump`
 
 ## Backup Policy
 
@@ -78,4 +78,4 @@ If the database must be restored:
 
 - uploads are stored on the app host volume, not object storage
 - this is currently a single-host deployment pattern
-- package vulnerabilities still exist in upstream dependencies and should be reviewed before a public internet launch
+- frontend still uses the older `react-scripts` toolchain; plan a Vite migration when the product scope stabilizes

@@ -12,6 +12,8 @@
 /build
 /server/node_modules
 /server/uploads
+/server/reports/
+/server/qa-route-matrix.out
 
 # misc
 .DS_Store

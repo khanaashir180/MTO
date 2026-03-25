@@ -46,7 +46,9 @@ After `.env.production` exists and Docker is running:
 
 This does:
 - verifies the repo is clean
+- validates required production env values
 - writes a release manifest in `deploy/releases/`
+- creates versioned DB/uploads backups when the production stack is running
 - creates a release tag
 
 If Git tagging is not configured yet, use:

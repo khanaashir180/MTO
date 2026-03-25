@@ -6,13 +6,13 @@ services:
     env_file:
       - .env.production
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-mto}
-      POSTGRES_USER: ${POSTGRES_USER:-mto_app}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+      POSTGRES_DB: ${POSTGRES_DB:?POSTGRES_DB is required}
+      POSTGRES_USER: ${POSTGRES_USER:?POSTGRES_USER is required}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mto_app} -d ${POSTGRES_DB:-mto}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:?POSTGRES_USER is required} -d ${POSTGRES_DB:?POSTGRES_DB is required}"]
       interval: 5s
       timeout: 5s
       retries: 20
@@ -36,11 +36,11 @@ services:
     environment:
       NODE_ENV: production
       PORT: 4000
-      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-https://app.example.com}
-      JWT_SECRET: ${JWT_SECRET:-replace_with_a_minimum_32_character_jwt_secret}
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:?CLIENT_ORIGIN is required}
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
       JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
       JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
-      DATABASE_URL: postgres://${POSTGRES_USER:-mto_app}:${POSTGRES_PASSWORD:-change_me}@db:5432/${POSTGRES_DB:-mto}
+      DATABASE_URL: postgres://${POSTGRES_USER:?POSTGRES_USER is required}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@db:5432/${POSTGRES_DB:?POSTGRES_DB is required}
       UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS:-900000}
@@ -48,7 +48,7 @@ services:
       API_RATE_LIMIT_WINDOW_MS: ${API_RATE_LIMIT_WINDOW_MS:-60000}
       API_RATE_LIMIT_MAX: ${API_RATE_LIMIT_MAX:-600}
       METRICS_ENABLED: ${METRICS_ENABLED:-true}
-      METRICS_TOKEN: ${METRICS_TOKEN:-replace_with_a_long_metrics_token}
+      METRICS_TOKEN: ${METRICS_TOKEN:?METRICS_TOKEN is required}
     volumes:
       - api_uploads:/app/uploads
     healthcheck:
@@ -67,8 +67,8 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        REACT_APP_API_URL: ${PUBLIC_API_URL:-https://app.example.com}/api
-        REACT_APP_SOCKET_URL: ${PUBLIC_API_URL:-https://app.example.com}
+        REACT_APP_API_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL is required}/api
+        REACT_APP_SOCKET_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL is required}
     container_name: mto-web
     restart: unless-stopped
     env_file:
