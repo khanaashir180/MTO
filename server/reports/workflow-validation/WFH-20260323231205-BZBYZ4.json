@@ -1,0 +1,140 @@
+{
+  "summary": {
+    "run_id": "WFH-20260323231205-BZBYZ4",
+    "started_at": "2026-03-23T23:12:05.629Z",
+    "finished_at": "2026-03-23T23:12:05.716Z",
+    "total_checks": 12,
+    "passed": 12,
+    "failed": 0,
+    "success_rate_pct": 100,
+    "status": "PASS"
+  },
+  "checks": [
+    {
+      "id": "PROD-FLOW-BESPOKE",
+      "category": "Production",
+      "title": "BESPOKE workflow reaches completed state",
+      "status": "PASS",
+      "details": "status=COMPLETED, current_stage_id=null"
+    },
+    {
+      "id": "PROD-FLOW-MTO",
+      "category": "Production",
+      "title": "MTO workflow reaches completed state",
+      "status": "PASS",
+      "details": "status=COMPLETED, current_stage_id=null"
+    },
+    {
+      "id": "PROD-MTO-GATE",
+      "category": "Production",
+      "title": "MTO sole gate satisfied before completion",
+      "status": "PASS",
+      "details": "mto_sole_done=true"
+    },
+    {
+      "id": "PROD-FLOW-LASER",
+      "category": "Production",
+      "title": "LASER workflow reaches completed state",
+      "status": "PASS",
+      "details": "status=COMPLETED, current_stage_id=null"
+    },
+    {
+      "id": "PROD-FLOW-EMBROIDERY",
+      "category": "Production",
+      "title": "EMBROIDERY workflow reaches completed state",
+      "status": "PASS",
+      "details": "status=COMPLETED, current_stage_id=null"
+    },
+    {
+      "id": "PROD-HOLD-RELEASE",
+      "category": "Production",
+      "title": "Verification hold and release workflow works",
+      "status": "PASS",
+      "details": "status=PENDING"
+    },
+    {
+      "id": "PROD-MOVE-BACK",
+      "category": "Production",
+      "title": "Move back workflow records and updates stage",
+      "status": "PASS",
+      "details": "stage=Model Room"
+    },
+    {
+      "id": "WF-RULE-2",
+      "category": "Workflow Engine",
+      "title": "Workflow engine applies matching bespoke rule",
+      "status": "PASS",
+      "details": "source=workflow-rule, next=Bespoke, rule=harness_wfh_20260323224607_nyg4ei"
+    },
+    {
+      "id": "FIN-PIPELINE",
+      "category": "Finance",
+      "title": "Finance verification and allocation workflow executed",
+      "status": "PASS",
+      "details": "{\"ledger_rows\":1,\"matched_bank_rows\":1,\"allocation_rows\":1,\"match_log_rows\":1}"
+    },
+    {
+      "id": "CRM-PIPELINE",
+      "category": "CRM",
+      "title": "CRM flow publish and run workflow executed",
+      "status": "PASS",
+      "details": "{\"published_versions\":7,\"successful_runs\":23}"
+    },
+    {
+      "id": "RTL-DELIVERY",
+      "category": "Retail",
+      "title": "Retail store-delivery workflow update recorded",
+      "status": "PASS",
+      "details": "rows=1"
+    },
+    {
+      "id": "PLATFORM-OPS",
+      "category": "Platform",
+      "title": "Idempotency and notification workflow evidence captured",
+      "status": "PASS",
+      "details": "{\"idem_rows\":1,\"notification_rows\":1}"
+    }
+  ],
+  "artifacts": {
+    "createdOrders": [
+      {
+        "id": 87,
+        "productionOrderNo": "WFH-20260323231205-BZBYZ4-BESPOKE-6B6816",
+        "barcode": "BC-WFH-20260323231205-BZBYZ4-BESPOKE-6B6816",
+        "flow": "BESPOKE"
+      },
+      {
+        "id": 88,
+        "productionOrderNo": "WFH-20260323231205-BZBYZ4-MTO-9F6E2B",
+        "barcode": "BC-WFH-20260323231205-BZBYZ4-MTO-9F6E2B",
+        "flow": "MTO"
+      },
+      {
+        "id": 89,
+        "productionOrderNo": "WFH-20260323231205-BZBYZ4-LASER-4975DF",
+        "barcode": "BC-WFH-20260323231205-BZBYZ4-LASER-4975DF",
+        "flow": "LASER"
+      },
+      {
+        "id": 90,
+        "productionOrderNo": "WFH-20260323231205-BZBYZ4-EMBROIDERY-93E8AD",
+        "barcode": "BC-WFH-20260323231205-BZBYZ4-EMBROIDERY-93E8AD",
+        "flow": "EMBROIDERY"
+      },
+      {
+        "id": 91,
+        "productionOrderNo": "WFH-20260323231205-BZBYZ4-BESPOKE-2BAEE9",
+        "barcode": "BC-WFH-20260323231205-BZBYZ4-BESPOKE-2BAEE9",
+        "flow": "BESPOKE"
+      },
+      {
+        "id": 92,
+        "productionOrderNo": "WFH-20260323231205-BZBYZ4-BESPOKE-B78B6D",
+        "barcode": "BC-WFH-20260323231205-BZBYZ4-BESPOKE-B78B6D",
+        "flow": "BESPOKE"
+      }
+    ],
+    "createdRows": {}
+  },
+  "signature_sha256": "fb52bbb785fc877d767dca05363f76e59d1a07e338d60be046e1e7497ad6a2b2"
+}

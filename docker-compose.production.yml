@@ -1,0 +1,118 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: mto-db
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-mto}
+      POSTGRES_USER: ${POSTGRES_USER:-mto_app}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-mto_app} -d ${POSTGRES_DB:-mto}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  api:
+    build:
+      context: ./server
+      dockerfile: Dockerfile
+    container_name: mto-api
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 4000
+      CLIENT_ORIGIN: ${CLIENT_ORIGIN:-https://app.example.com}
+      JWT_SECRET: ${JWT_SECRET:-replace_with_a_minimum_32_character_jwt_secret}
+      JWT_EXPIRES_IN: ${JWT_EXPIRES_IN:-12h}
+      JWT_REFRESH_EXPIRES_IN: ${JWT_REFRESH_EXPIRES_IN:-30d}
+      DATABASE_URL: postgres://${POSTGRES_USER:-mto_app}:${POSTGRES_PASSWORD:-change_me}@db:5432/${POSTGRES_DB:-mto}
+      UPLOAD_DIR: ${UPLOAD_DIR:-uploads}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+      AUTH_RATE_LIMIT_WINDOW_MS: ${AUTH_RATE_LIMIT_WINDOW_MS:-900000}
+      AUTH_RATE_LIMIT_MAX: ${AUTH_RATE_LIMIT_MAX:-25}
+      API_RATE_LIMIT_WINDOW_MS: ${API_RATE_LIMIT_WINDOW_MS:-60000}
+      API_RATE_LIMIT_MAX: ${API_RATE_LIMIT_MAX:-600}
+      METRICS_ENABLED: ${METRICS_ENABLED:-true}
+      METRICS_TOKEN: ${METRICS_TOKEN:-replace_with_a_long_metrics_token}
+    volumes:
+      - api_uploads:/app/uploads
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:4000/health').then((res)=>process.exit(res.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        REACT_APP_API_URL: ${PUBLIC_API_URL:-https://app.example.com}/api
+        REACT_APP_SOCKET_URL: ${PUBLIC_API_URL:-https://app.example.com}
+    container_name: mto-web
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://127.0.0.1:3000').then((res)=>process.exit(res.ok?0:1)).catch(()=>process.exit(1))"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+  proxy:
+    image: caddy:2-alpine
+    container_name: mto-proxy
+    restart: unless-stopped
+    env_file:
+      - .env.production
+    depends_on:
+      web:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "5"
+
+volumes:
+  postgres_data:
+  api_uploads:
+  caddy_data:
+  caddy_config:

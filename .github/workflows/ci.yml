@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mto_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgres://postgres:postgres@localhost:5432/mto_ci
+      JWT_SECRET: ci-secret-value-minimum-24-characters
+      CLIENT_ORIGIN: http://localhost:3000
+      METRICS_TOKEN: ci-metrics-token
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install frontend dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      - name: Install server dependencies
+        run: npm ci
+        working-directory: server
+
+      - name: Install PostgreSQL client tools
+        run: sudo apt-get update && sudo apt-get install -y postgresql-client
+
+      - name: Run migrations (fresh)
+        run: npm run migrate
+        working-directory: server
+
+      - name: Run migrations (idempotency)
+        run: npm run migrate
+        working-directory: server
+
+      - name: Backup DB
+        run: npm run backup:db
+        working-directory: server
+
+      - name: Verify backup
+        run: npm run verify:backup
+        working-directory: server
+
+      - name: Restore backup
+        run: |
+          latest=$(ls -1t backups/*.dump | head -n 1)
+          npm run restore:db -- "$latest"
+        working-directory: server
+
+      - name: Run server tests
+        run: npm test
+        working-directory: server

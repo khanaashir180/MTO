@@ -1,0 +1,46 @@
+{
+  "name": "mto-server",
+  "version": "1.0.0",
+  "private": true,
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "migrate": "node src/utils/runMigration.js",
+    "migrate:baseline": "node src/utils/runMigration.js --baseline-existing",
+    "seed": "node src/utils/seedUsers.js",
+    "test": "jest --runInBand",
+    "backup:db": "node scripts/backup-db.js",
+    "restore:db": "node scripts/restore-db.js",
+    "verify:backup": "node scripts/verify-backup.js",
+    "validate:workflows": "node scripts/workflowValidationHarness.js",
+    "qa:user-audit": "node scripts/qaUserFunctionAudit.js",
+    "qa:route-matrix": "node scripts/qaRouteMatrixAudit.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "bwip-js": "^4.6.0",
+    "cors": "^2.8.5",
+    "csv-stringify": "^6.5.2",
+    "dotenv": "^16.4.7",
+    "express-rate-limit": "^7.5.0",
+    "express": "^4.21.2",
+    "helmet": "^8.0.0",
+    "jsonwebtoken": "^9.0.2",
+    "multer": "^2.0.2",
+    "pdfkit": "^0.16.0",
+    "pg": "^8.13.1",
+    "prom-client": "^15.1.3",
+    "sharp": "^0.34.2",
+    "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "jest": "^30.2.0",
+    "nodemon": "^3.1.9",
+    "supertest": "^7.2.2"
+  },
+  "overrides": {
+    "socket.io-parser": "4.2.6",
+    "minimatch": "^3.1.4"
+  }
+}

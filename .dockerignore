@@ -1,0 +1,8 @@
+node_modules
+build
+server/node_modules
+server/uploads
+server/backups
+.git
+.github
+*.log
