@@ -21,13 +21,17 @@
     "dev": "concurrently \"npm run server:dev\" \"npm start\""
   },
   "devDependencies": {
+    "babel-preset-react-app": "^10.1.0",
+    "chokidar": "^3.6.0",
     "concurrently": "^9.1.2",
-    "typescript": "^4.9.5"
+    "typescript": "^4.9.5",
+    "yaml": "^2.8.3"
   },
   "overrides": {
     "socket.io-parser": "4.2.6",
     "minimatch": "^3.1.4",
-    "@tootallnate/once": "^3.0.1"
+    "@tootallnate/once": "^3.0.1",
+    "yaml": "^2.8.3"
   },
   "eslintConfig": {
     "extends": [
