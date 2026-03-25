@@ -287,7 +287,7 @@ function UsersSettings({ canManageUsers }) {
     return (
       <section className="card">
         <h3>User Management</h3>
-        <p>Only SUPER_USER can add and view users.</p>
+        <p>You do not have rights to manage users.</p>
       </section>
     );
   }

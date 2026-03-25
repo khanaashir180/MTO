@@ -49,8 +49,8 @@ function renderDeferred(node, title) {
 
 function AppShell() {
   const { isAuthenticated, user, logout } = useAuth();
-  const retailRoles = ['RETAIL', 'SHOP_MANAGER', 'RETAIL_HEAD', 'SUPER_USER'];
-  const shopManagerRoles = ['RETAIL', 'SHOP_MANAGER', 'SUPER_USER'];
+  const retailRoles = ['RETAIL', 'RETAIL_STAFF', 'SHOP_MANAGER', 'RETAIL_HEAD', 'SUPER_USER'];
+  const shopManagerRoles = ['RETAIL', 'RETAIL_STAFF', 'SHOP_MANAGER', 'SUPER_USER'];
   const [refreshSignal, setRefreshSignal] = useState(0);
   const [showOrderForm, setShowOrderForm] = useState(false);
   const [newOrderType, setNewOrderType] = useState('MTO');
@@ -116,12 +116,12 @@ function AppShell() {
   const canProduction = isProductionRole || hasRight('production_view_dashboard', false);
   const canSettings = hasRight('admin_access', user?.role === 'SUPER_USER');
   const canCreateOrder = hasRight('retail_create_order', shopManagerRoles.includes(user?.role));
-  const canFinance = user?.role !== 'RETAIL'
+  const canFinance = !['RETAIL', 'RETAIL_STAFF'].includes(user?.role)
     && hasRight('finance_view_module', user?.role === 'FINANCE' || user?.role === 'SUPER_USER');
   const canMrp = hasRight('mrp_view_module', canProduction || user?.role === 'FINANCE' || user?.role === 'SUPER_USER');
   const canRawStore = hasRight('raw_store_view_module', canMrp || shopManagerRoles.includes(user?.role));
   const isCustomerService = user?.role === 'CUSTOMER_SERVICE';
-  const canCrm = !['RETAIL', 'SHOP_MANAGER', 'RETAIL_HEAD'].includes(user?.role)
+  const canCrm = !['RETAIL', 'RETAIL_STAFF', 'SHOP_MANAGER', 'RETAIL_HEAD'].includes(user?.role)
     && hasRight('crm_view_module', isCustomerService || user?.role === 'FINANCE' || user?.role === 'SUPER_USER');
   const canExecutiveKpi = hasRight(
     'executive_view_dashboard',
@@ -141,7 +141,7 @@ function AppShell() {
   }
 
   if (pageMode === 'admin') {
-    if (user?.role !== 'SUPER_USER') {
+    if (!canSettings) {
       return (
         <main className="app-shell">
           <header className="app-header">
@@ -155,7 +155,7 @@ function AppShell() {
           </header>
           <section className="card">
             <h2>Access Denied</h2>
-            <p>Super Admin Console is available only for SUPER_USER.</p>
+            <p>Admin console is not enabled for your account.</p>
           </section>
         </main>
       );
@@ -935,7 +935,7 @@ function AppShell() {
                   >
                     Settings
                   </button>
-                  {user?.role === 'SUPER_USER' && (
+                  {canSettings && (
                     <button
                       type="button"
                       className="button-secondary"

@@ -130,6 +130,24 @@ function requireAnyPermission(...permissionKeys) {
   };
 }
 
+function requireRoleOrPermission(allowedRoles = [], permissionKeys = []) {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(403).json({ message: 'Forbidden' });
+    }
+    if (req.user.role === 'SUPER_USER') {
+      return next();
+    }
+    if (allowedRoles.includes(req.user.role)) {
+      return next();
+    }
+    if (permissionKeys.some((key) => Boolean(req.user.permissions?.[key]))) {
+      return next();
+    }
+    return res.status(403).json({ message: 'Forbidden' });
+  };
+}
+
 function requireStageAccess() {
   return (req, res, next) => {
     if (['PRODUCTION_MANAGER', 'SUPER_USER'].includes(req.user.role)) {
@@ -152,5 +170,6 @@ module.exports = {
   requireRoles,
   requirePermission,
   requireAnyPermission,
+  requireRoleOrPermission,
   requireStageAccess,
 };

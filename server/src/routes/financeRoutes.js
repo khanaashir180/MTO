@@ -1,5 +1,5 @@
 const express = require('express');
-const { authRequired, requireRoles } = require('../middleware/auth');
+const { authRequired, requireRoles, requireRoleOrPermission } = require('../middleware/auth');
 const { idempotencyRequired } = require('../middleware/idempotency');
 const {
   listAccounts,
@@ -154,18 +154,27 @@ const {
 const router = express.Router();
 
 router.use(authRequired);
-router.get('/accounts', requireRoles('RETAIL', 'SHOP_MANAGER', 'SUPER_USER', 'FINANCE'), listAccounts);
-router.get('/trial-balance', requireRoles('SUPER_USER', 'FINANCE'), getTrialBalance);
-router.get('/payment-accounts', requireRoles('RETAIL', 'SHOP_MANAGER', 'SUPER_USER', 'FINANCE'), listPaymentAccounts);
+const canUseRetailFinanceLookups = requireRoleOrPermission(
+  ['RETAIL', 'RETAIL_STAFF', 'SHOP_MANAGER', 'FINANCE'],
+  ['retail_create_order', 'finance_view_module']
+);
+const canViewFinanceReports = requireRoleOrPermission(
+  ['FINANCE'],
+  ['finance_view_trial_balance', 'finance_manage_settings']
+);
+
+router.get('/accounts', canUseRetailFinanceLookups, listAccounts);
+router.get('/trial-balance', canViewFinanceReports, getTrialBalance);
+router.get('/payment-accounts', canUseRetailFinanceLookups, listPaymentAccounts);
 router.post('/payment-accounts', requireRoles('SUPER_USER', 'FINANCE'), createPaymentAccount);
 router.put('/payment-accounts/:id', requireRoles('SUPER_USER', 'FINANCE'), updatePaymentAccount);
-router.get('/accounts/:id/ledger', requireRoles('RETAIL', 'SHOP_MANAGER', 'SUPER_USER', 'FINANCE'), getAccountLedger);
-router.post('/accounts/:id/ledger', requireRoles('RETAIL', 'SHOP_MANAGER', 'SUPER_USER', 'FINANCE'), idempotencyRequired(), postLedgerEntry);
+router.get('/accounts/:id/ledger', canUseRetailFinanceLookups, getAccountLedger);
+router.post('/accounts/:id/ledger', canUseRetailFinanceLookups, idempotencyRequired(), postLedgerEntry);
 router.get('/bank-statements', requireRoles('SUPER_USER', 'FINANCE'), listBankStatementEntries);
 router.post('/bank-statements', requireRoles('SUPER_USER', 'FINANCE'), idempotencyRequired(), addBankStatementEntry);
 router.get('/payments/pending', requireRoles('SUPER_USER', 'FINANCE'), listPendingVerifications);
 router.post('/payments/verify', requireRoles('SUPER_USER', 'FINANCE'), idempotencyRequired(), verifyPaymentEntry);
-router.get('/dashboard/overview', requireRoles('SUPER_USER', 'FINANCE'), getAccountingOverview);
+router.get('/dashboard/overview', canViewFinanceReports, getAccountingOverview);
 router.get('/coa/accounts', requireRoles('SUPER_USER', 'FINANCE'), listChartAccounts);
 router.post('/coa/accounts', requireRoles('SUPER_USER', 'FINANCE'), createChartAccount);
 router.get('/vendors', requireRoles('SUPER_USER', 'FINANCE'), listVendors);
