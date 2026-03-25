@@ -27,7 +27,7 @@
 
 ## Current Technical Boundaries
 
-- Frontend still uses `react-scripts`; this is functional but older than the rest of the stack
+- Frontend now uses Vite, but the app itself is still a large single-page codebase and will benefit from future module cleanup
 - Uploads are stored on local container-backed storage, not object storage
 - Production deployment is designed for a single-host Docker VPS
 

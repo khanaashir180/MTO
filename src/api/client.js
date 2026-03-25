@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { API_URL } from '../config/env';
 
 const api = axios.create({
-  baseURL: process.env.REACT_APP_API_URL || 'http://localhost:4000/api',
+  baseURL: API_URL,
 });
 
 let refreshInFlight = null;

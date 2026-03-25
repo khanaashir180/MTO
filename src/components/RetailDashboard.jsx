@@ -2534,7 +2534,7 @@ export default function RetailDashboard({
                       <label className="production-chip high">{row.outlet}</label>
                     </div>
                     <div className="retail-queue-meta">
-                      <span>{row.beforeDue} -> {row.afterDue}</span>
+                      <span>{row.beforeDue}{' -> '}{row.afterDue}</span>
                       <span>{row.changedAt}</span>
                       <span>{row.changedBy}</span>
                     </div>
@@ -2805,7 +2805,7 @@ export default function RetailDashboard({
                         <label className="production-chip high">{row.outlet}</label>
                       </div>
                       <div className="retail-queue-meta">
-                        <span>{row.beforeDue} -> {row.afterDue}</span>
+                        <span>{row.beforeDue}{' -> '}{row.afterDue}</span>
                         <span>{row.changedBy}</span>
                       </div>
                     </article>

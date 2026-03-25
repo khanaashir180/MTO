@@ -67,8 +67,8 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        REACT_APP_API_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL is required}/api
-        REACT_APP_SOCKET_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL is required}
+        VITE_API_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL is required}/api
+        VITE_SOCKET_URL: ${PUBLIC_API_URL:?PUBLIC_API_URL is required}
     container_name: mto-web
     restart: unless-stopped
     env_file:

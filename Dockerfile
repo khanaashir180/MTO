@@ -7,10 +7,10 @@ RUN npm ci
 
 COPY . .
 
-ARG REACT_APP_API_URL=http://localhost:4000/api
-ARG REACT_APP_SOCKET_URL=http://localhost:4000
-ENV REACT_APP_API_URL=$REACT_APP_API_URL
-ENV REACT_APP_SOCKET_URL=$REACT_APP_SOCKET_URL
+ARG VITE_API_URL=http://localhost:4000/api
+ARG VITE_SOCKET_URL=http://localhost:4000
+ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_SOCKET_URL=$VITE_SOCKET_URL
 
 RUN npm run build
 
@@ -20,8 +20,8 @@ WORKDIR /app
 
 RUN npm install -g serve
 
-COPY --from=build /app/build ./build
+COPY --from=build /app/dist ./dist
 
 EXPOSE 3000
 
-CMD ["serve", "-s", "build", "-l", "3000"]
+CMD ["serve", "-s", "dist", "-l", "3000"]

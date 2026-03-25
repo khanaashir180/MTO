@@ -4485,7 +4485,7 @@ export default function CRMPage({ refreshSignal = 0, lockedWorkspace = '' }) {
                     {mergePreview ? (
                       <div className="crm-order-insight-list">
                         <article className="crm-order-insight-card">
-                          <strong>{mergePreview.source_account?.customer_name || mergePreview.source_account?.customer_number} -> {mergePreview.target_account?.customer_name || mergePreview.target_account?.customer_number}</strong>
+                          <strong>{mergePreview.source_account?.customer_name || mergePreview.source_account?.customer_number}{' -> '}{mergePreview.target_account?.customer_name || mergePreview.target_account?.customer_number}</strong>
                           <div className="crm-order-insight-meta">
                             <span>{mergePreview.preview?.contacts_to_move || 0} contacts</span>
                             <span>{mergePreview.preview?.interactions_to_move || 0} interactions</span>

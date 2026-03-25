@@ -162,6 +162,10 @@ npm run restore:db -- ..\\server\\backups\\mto-backup-<timestamp>.dump
   - frontend clean install + build
   - server install + tests
 
+## Frontend Tooling
+- frontend dev/build now runs on Vite
+- root env vars for the frontend use `VITE_API_URL` and `VITE_SOCKET_URL`
+
 ## Handover
 - Architecture summary: [ARCHITECTURE.md](/c:/Users/AASHIR180/Desktop/mto/mto/ARCHITECTURE.md)
 - Team handover checklist: [HANDOVER.md](/c:/Users/AASHIR180/Desktop/mto/mto/HANDOVER.md)

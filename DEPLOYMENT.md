@@ -78,4 +78,4 @@ If the database must be restored:
 
 - uploads are stored on the app host volume, not object storage
 - this is currently a single-host deployment pattern
-- frontend still uses the older `react-scripts` toolchain; plan a Vite migration when the product scope stabilizes
+- frontend now builds with Vite; future hardening should focus on code-splitting and frontend test coverage
