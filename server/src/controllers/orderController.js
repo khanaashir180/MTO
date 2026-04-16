@@ -547,7 +547,7 @@ async function createOrder(req, res, next) {
     await client.query('COMMIT');
 
     const payload = { order, product, images };
-    req.io.emit('order:created', payload);
+    req.io?.emit?.('order:created', payload);
     res.status(201).json(payload);
   } catch (error) {
     await client.query('ROLLBACK');
