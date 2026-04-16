@@ -26,7 +26,7 @@ const {
   upsertRetailOrderCapacity,
   lookupCustomerByNumber,
 } = require('../controllers/orderController');
-const { authRequired, requireAnyPermission, requirePermission, requireRoles } = require('../middleware/auth');
+const { authRequired, requireAnyPermission, requirePermission } = require('../middleware/auth');
 const { idempotencyRequired } = require('../middleware/idempotency');
 const upload = require('../middleware/upload');
 
