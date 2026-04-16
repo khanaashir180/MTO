@@ -62,4 +62,11 @@ describe('deployment and route guardrails', () => {
     expect(orderRoutes).toContain("requireAnyPermission('retail_manage_replacements'");
     expect(orderRoutes).not.toContain('requireRoles(');
   });
+
+  test('order controller depends on finance services, not finance controller internals', () => {
+    const orderController = readRepoFile('server/src/controllers/orderController.js');
+
+    expect(orderController).toContain("../services/customerLedgerService");
+    expect(orderController).not.toContain("./financeController");
+  });
 });

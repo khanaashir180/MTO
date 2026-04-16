@@ -16,7 +16,7 @@ const {
   normalizeCustomerNumber,
   normalizeOrderType,
 } = require('../utils/orderValidation');
-const { postOrderLedgerEntries, ensureAccount } = require('./financeController');
+const { postOrderLedgerEntries, ensureAccount } = require('../services/customerLedgerService');
 
 function toPublicUrl(req, filename) {
   return `${req.protocol}://${req.get('host')}/uploads/${filename}`;
