@@ -27,6 +27,7 @@
 /deploy/backups
 /server/backups
 server-run.log
+local-run.log
 
 npm-debug.log*
 yarn-debug.log*
