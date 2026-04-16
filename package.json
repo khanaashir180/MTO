@@ -19,7 +19,11 @@
     "preview": "vite preview --host 0.0.0.0 --port 3000",
     "test": "vitest run --passWithNoTests",
     "server:dev": "npm run dev --prefix server",
-    "server:start": "npm run start --prefix server"
+    "server:start": "npm run start --prefix server",
+    "migrate": "npm run migrate --prefix server",
+    "seed": "npm run seed --prefix server",
+    "railway:build": "npm ci --prefix server",
+    "railway:start": "npm run migrate --prefix server && npm run start --prefix server"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^5.0.4",
