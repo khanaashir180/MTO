@@ -10,6 +10,7 @@
     "migrate:baseline": "node src/utils/runMigration.js --baseline-existing",
     "seed": "node src/utils/seedUsers.js",
     "test": "jest --runInBand",
+    "test:integration": "jest --runInBand --testMatch \"**/tests/**/*.integration.test.js\" --testPathIgnorePatterns \"/node_modules/\"",
     "backup:db": "node scripts/backup-db.js",
     "restore:db": "node scripts/restore-db.js",
     "verify:backup": "node scripts/verify-backup.js",

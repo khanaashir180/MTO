@@ -82,6 +82,14 @@ jobs:
         run: npm test
         working-directory: server
 
+      - name: Seed integration users
+        run: npm run seed
+        working-directory: server
+
+      - name: Run database-backed pilot integration tests
+        run: npm run test:integration
+        working-directory: server
+
   railway-image-smoke:
     runs-on: ubuntu-latest
     services:
