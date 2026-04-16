@@ -81,3 +81,70 @@ jobs:
       - name: Run server tests
         run: npm test
         working-directory: server
+
+  railway-image-smoke:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: mto_railway_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Build Railway backend image
+        run: docker build -f Dockerfile.railway -t mto-railway-ci .
+
+      - name: Start Railway backend container
+        run: |
+          docker run -d --name mto-railway-ci \
+            --network host \
+            -e PORT=4000 \
+            -e DATABASE_URL=postgres://postgres:postgres@localhost:5432/mto_railway_ci \
+            -e JWT_SECRET=ci-railway-secret-minimum-24-characters \
+            -e JWT_EXPIRES_IN=12h \
+            -e JWT_REFRESH_EXPIRES_IN=30d \
+            -e CLIENT_ORIGIN=http://localhost:3000 \
+            -e UPLOAD_DIR=/app/uploads \
+            -e METRICS_TOKEN=ci-railway-metrics-token \
+            -e LOG_LEVEL=info \
+            mto-railway-ci
+
+      - name: Wait for Railway backend health
+        run: |
+          for i in {1..60}; do
+            if curl -fsS http://localhost:4000/health; then
+              exit 0
+            fi
+            echo "Waiting for backend container health ($i/60)"
+            docker logs --tail 80 mto-railway-ci || true
+            sleep 3
+          done
+          docker logs mto-railway-ci || true
+          exit 1
+
+      - name: Seed Railway backend container
+        run: docker exec mto-railway-ci npm run seed
+
+      - name: Login smoke against Railway backend container
+        run: |
+          response=$(curl -fsS -X POST http://localhost:4000/api/auth/login \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"super@example.com","password":"password123"}')
+          echo "$response" | node -e "let data=''; process.stdin.on('data', c => data += c); process.stdin.on('end', () => { const parsed = JSON.parse(data); if (!parsed.token || parsed.user?.email !== 'super@example.com') process.exit(1); });"
+
+      - name: Stop Railway backend container
+        if: always()
+        run: |
+          docker logs --tail 200 mto-railway-ci || true
+          docker rm -f mto-railway-ci || true
