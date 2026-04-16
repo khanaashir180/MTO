@@ -12,12 +12,16 @@
     "test": "jest --runInBand",
     "test:integration": "jest --runInBand --testMatch \"**/tests/**/*.integration.test.js\" --testPathIgnorePatterns \"/node_modules/\"",
     "backup:db": "node scripts/backup-db.js",
+    "backup:automated": "node scripts/backup-db-automated.js",
+    "backup:verify": "node scripts/verify-backup.js --s3",
+    "pre-deploy-check": "node scripts/pre-deploy-check.js",
     "restore:db": "node scripts/restore-db.js",
     "verify:backup": "node scripts/verify-backup.js",
     "audit:migrations": "node scripts/audit-migrations.js",
     "validate:workflows": "node scripts/workflowValidationHarness.js",
     "qa:user-audit": "node scripts/qaUserFunctionAudit.js",
-    "qa:route-matrix": "node scripts/qaRouteMatrixAudit.js"
+    "qa:route-matrix": "node scripts/qaRouteMatrixAudit.js",
+    "test:integration:critical": "jest --runInBand --testMatch \"**/tests/{orderToLedger,paymentReconciliation,transactionSafety}.integration.test.js\" --testPathIgnorePatterns \"/node_modules/\""
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

@@ -11,4 +11,4 @@ RUN mkdir -p /app/uploads
 
 EXPOSE 4000
 
-CMD ["sh", "-c", "npm run migrate && npm run start"]
+CMD ["sh", "-c", "npm run pre-deploy-check && npm run migrate && npm run start"]
