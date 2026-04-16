@@ -317,6 +317,56 @@ describe('pilot integration workflow against real database', () => {
     );
   });
 
+  test('audits branch order edits with before and after snapshots', async () => {
+    const shopToken = await login('shopmanager@example.com');
+    const superToken = await login('super@example.com');
+    const { response } = await createPilotOrder(
+      shopToken,
+      {
+        customerNumber: `308${String(Date.now()).slice(-7)}`,
+        deliveryAddress: 'Original delivery address',
+        size: '42',
+      },
+      'itest-order-audit'
+    );
+
+    expect(response.status).toBe(201);
+    const order = response.body.order;
+
+    const update = await request(app)
+      .put(`/api/orders/${order.id}`)
+      .set('Authorization', `Bearer ${shopToken}`)
+      .send({
+        deliveryAddress: 'Updated delivery address for pilot audit',
+        size: '43',
+        comments: 'Audit trail integration update',
+      });
+
+    expect(update.status).toBe(200);
+    expect(update.body.order.delivery_address).toBe('Updated delivery address for pilot audit');
+    expect(update.body.order.size).toBe('43');
+
+    const auditResponse = await request(app)
+      .get('/api/orders/change-logs')
+      .query({ orderId: order.id, limit: 5 })
+      .set('Authorization', `Bearer ${superToken}`);
+
+    expect(auditResponse.status).toBe(200);
+    expect(auditResponse.body.logs).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          order_id: order.id,
+          change_source: 'ORDER_DETAILS_UPDATE',
+        }),
+      ])
+    );
+    const auditLog = auditResponse.body.logs.find((log) => log.change_source === 'ORDER_DETAILS_UPDATE');
+    expect(auditLog.before_data.delivery_address).toBe('Original delivery address');
+    expect(auditLog.after_data.delivery_address).toBe('Updated delivery address for pilot audit');
+    expect(auditLog.before_data.size).toBe('42');
+    expect(auditLog.after_data.size).toBe('43');
+  });
+
   test('production manager can advance a real MTO order and audit stage history', async () => {
     const shopToken = await login('shopmanager@example.com');
     const managerToken = await login('manager@example.com');
@@ -461,6 +511,52 @@ describe('pilot integration workflow against real database', () => {
     expect(recoveryResponse.body.recoveryCase.production_order_no).toBe(order.production_order_no);
     expect(recoveryResponse.body.recoveryCase.recovery_reference_no).toBe(`${order.production_order_no}-R1`);
     expect(recoveryResponse.body.recoveryCase.replacement_sequence).toBe(1);
+
+    const recoveryCaseId = recoveryResponse.body.recoveryCase.id;
+    const updateResponse = await request(app)
+      .put(`/api/orders/retail-recovery-cases/${recoveryCaseId}`)
+      .set('Authorization', `Bearer ${shopToken}`)
+      .send({
+        workflowStatus: 'IN_REVIEW',
+        ownerName: 'Pilot Recovery Owner',
+        notes: 'Replacement moved to review',
+        noteType: 'STATUS',
+      });
+
+    expect(updateResponse.status).toBe(200);
+    expect(updateResponse.body.recoveryCase.workflow_status).toBe('IN_REVIEW');
+    expect(updateResponse.body.recoveryCase.owner_name).toBe('Pilot Recovery Owner');
+
+    const { rows: auditRows } = await pool.query(
+      `SELECT change_type, before_data, after_data
+       FROM retail_recovery_case_audit
+       WHERE recovery_case_id = $1
+       ORDER BY id`,
+      [recoveryCaseId]
+    );
+    expect(auditRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ change_type: 'CASE_CREATED' }),
+        expect.objectContaining({ change_type: 'CASE_UPDATED' }),
+      ])
+    );
+    const updateAudit = auditRows.find((row) => row.change_type === 'CASE_UPDATED');
+    expect(updateAudit.before_data.workflow_status).toBe('OPEN');
+    expect(updateAudit.after_data.workflow_status).toBe('IN_REVIEW');
+
+    const { rows: noteRows } = await pool.query(
+      `SELECT note_type, note_text
+       FROM retail_recovery_case_notes
+       WHERE recovery_case_id = $1
+       ORDER BY id`,
+      [recoveryCaseId]
+    );
+    expect(noteRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ note_type: 'COMMENT', note_text: 'Integration replacement case' }),
+        expect.objectContaining({ note_type: 'STATUS', note_text: 'Replacement moved to review' }),
+      ])
+    );
   });
 
   test('rejects invalid MTO customer names before creating workflow data', async () => {
