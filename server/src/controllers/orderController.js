@@ -296,6 +296,7 @@ async function createOrder(req, res, next) {
       splitAdvancePaymentAccountIdSecondary,
       comments,
       orderType,
+      productionFlow,
       productName,
       size,
       colour,
@@ -333,6 +334,10 @@ async function createOrder(req, res, next) {
     const normalizedOrderType = String(orderType || 'MTO').toUpperCase();
     if (!['MTO', 'REFURBISHMENT', 'RETURN'].includes(normalizedOrderType)) {
       throw new ApiError(400, 'Invalid order type');
+    }
+    const normalizedProductionFlow = String(productionFlow || 'BESPOKE').toUpperCase();
+    if (!['BESPOKE', 'EMBROIDERY', 'LASER', 'MTO'].includes(normalizedProductionFlow)) {
+      throw new ApiError(400, 'Invalid production flow');
     }
     const effectiveOutlet = req.user.outlet_name || orderedFrom;
     await assertActiveOutlet(client, effectiveOutlet);
@@ -399,7 +404,7 @@ async function createOrder(req, res, next) {
         id, production_order_no, customer_name, customer_number, customer_address, delivery_address, ordered_from,
         order_date, due_date, product_price, advance_paid, advance_payment_account_id, balance_payment_account_id,
         comments, order_type, production_flow, status, current_stage_id, created_by
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'BESPOKE','PENDING',$16,$17)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,'PENDING',$17,$18)
       RETURNING *`,
       [
         orderId,
@@ -417,6 +422,7 @@ async function createOrder(req, res, next) {
         null,
         comments || null,
         normalizedOrderType,
+        normalizedProductionFlow,
         stageId,
         req.user.id,
       ]

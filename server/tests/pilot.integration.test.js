@@ -41,6 +41,7 @@ function orderPayload(overrides = {}) {
     advancePaid: '0',
     comments: 'Integration workflow order',
     orderType: 'MTO',
+    productionFlow: 'MTO',
     productName: 'Oxford shoe',
     size: '42',
     colour: 'Black',
@@ -54,6 +55,28 @@ function orderPayload(overrides = {}) {
     stamp: 'MTO',
     ...overrides,
   };
+}
+
+function setOrderFields(req, payload) {
+  let nextReq = req;
+  Object.entries(payload).forEach(([key, value]) => {
+    if (value !== undefined && value !== null) {
+      nextReq = nextReq.field(key, String(value));
+    }
+  });
+  return nextReq;
+}
+
+async function createPilotOrder(token, overrides = {}, idempotencyPrefix = 'itest-order') {
+  const payload = orderPayload(overrides);
+  const response = await setOrderFields(
+    request(app)
+      .post('/api/orders')
+      .set('Authorization', `Bearer ${token}`)
+      .set('Idempotency-Key', `${idempotencyPrefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`),
+    payload
+  );
+  return { payload, response };
 }
 
 describe('pilot integration workflow against real database', () => {
@@ -184,35 +207,7 @@ describe('pilot integration workflow against real database', () => {
 
   test('creates real MTO order with PO prefix, product, customer account, and ledger entry', async () => {
     const shopToken = await login('shopmanager@example.com');
-    const payload = orderPayload();
-
-    const response = await request(app)
-      .post('/api/orders')
-      .set('Authorization', `Bearer ${shopToken}`)
-      .set('Idempotency-Key', `itest-mto-${Date.now()}`)
-      .field('customerName', payload.customerName)
-      .field('customerCountryCode', payload.customerCountryCode)
-      .field('customerNumber', payload.customerNumber)
-      .field('customerAddress', payload.customerAddress)
-      .field('deliveryAddress', payload.deliveryAddress)
-      .field('orderDate', payload.orderDate)
-      .field('dueDate', payload.dueDate)
-      .field('orderedFrom', payload.orderedFrom)
-      .field('productPrice', payload.productPrice)
-      .field('advancePaid', payload.advancePaid)
-      .field('comments', payload.comments)
-      .field('orderType', payload.orderType)
-      .field('productName', payload.productName)
-      .field('size', payload.size)
-      .field('colour', payload.colour)
-      .field('lastNumber', payload.lastNumber)
-      .field('sole', payload.sole)
-      .field('upperMaterial', payload.upperMaterial)
-      .field('liningMaterial', payload.liningMaterial)
-      .field('edgeColour', payload.edgeColour)
-      .field('socks', payload.socks)
-      .field('welt', payload.welt)
-      .field('stamp', payload.stamp);
+    const { payload, response } = await createPilotOrder(shopToken, {}, 'itest-mto');
 
     expect(response.status).toBe(201);
     expect(response.body.order.production_order_no).toMatch(/^PO-\d{8}-\d{6}$/);
@@ -232,6 +227,108 @@ describe('pilot integration workflow against real database', () => {
     expect(ledgerRows).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ entry_type: 'DEBIT', category: 'ORDER' }),
+      ])
+    );
+  });
+
+  test('prints order PDFs, customer reference PDFs, and finance ledger evidence for a real order', async () => {
+    const shopToken = await login('shopmanager@example.com');
+    const financeToken = await login('finance@example.com');
+    const { payload, response } = await createPilotOrder(
+      shopToken,
+      {
+        customerNumber: `304${String(Date.now()).slice(-7)}`,
+        productPrice: '125000',
+        advancePaid: '0',
+      },
+      'itest-docs-ledger'
+    );
+
+    expect(response.status).toBe(201);
+    const order = response.body.order;
+
+    const orderPdf = await request(app)
+      .get(`/api/orders/${order.id}/pdf`)
+      .set('Authorization', `Bearer ${shopToken}`);
+    expect(orderPdf.status).toBe(200);
+    expect(orderPdf.headers['content-type']).toMatch(/application\/pdf/i);
+    expect(Buffer.byteLength(orderPdf.body || '') || Number(orderPdf.headers['content-length'] || 0)).toBeGreaterThan(500);
+
+    const customerReference = await request(app)
+      .get(`/api/orders/${order.id}/customer-reference`)
+      .set('Authorization', `Bearer ${shopToken}`);
+    expect(customerReference.status).toBe(200);
+    expect(customerReference.headers['content-type']).toMatch(/application\/pdf/i);
+    expect(Buffer.byteLength(customerReference.body || '') || Number(customerReference.headers['content-length'] || 0)).toBeGreaterThan(500);
+
+    const { rows: accountRows } = await pool.query(
+      `SELECT id FROM customer_accounts WHERE customer_number = $1`,
+      [order.customer_number]
+    );
+    expect(accountRows).toHaveLength(1);
+
+    const ledger = await request(app)
+      .get(`/api/finance/accounts/${accountRows[0].id}/ledger`)
+      .set('Authorization', `Bearer ${financeToken}`);
+    expect(ledger.status).toBe(200);
+    expect(ledger.body.account.customer_number).toBe(order.customer_number);
+    expect(ledger.body.summary.total_debit).toBe(Number(payload.productPrice));
+    expect(ledger.body.entries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          entry_type: 'DEBIT',
+          category: 'ORDER',
+          reference_order_id: order.id,
+        }),
+      ])
+    );
+    expect(ledger.body.order_summaries).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          order_id: order.id,
+          production_order_no: order.production_order_no,
+        }),
+      ])
+    );
+  });
+
+  test('production manager can advance a real MTO order and audit stage history', async () => {
+    const shopToken = await login('shopmanager@example.com');
+    const managerToken = await login('manager@example.com');
+    const { response } = await createPilotOrder(
+      shopToken,
+      {
+        customerNumber: `305${String(Date.now()).slice(-7)}`,
+        dueDate: futureDate(45),
+      },
+      'itest-production-advance'
+    );
+    expect(response.status).toBe(201);
+
+    const advance = await request(app)
+      .post('/api/production/advance')
+      .set('Authorization', `Bearer ${managerToken}`)
+      .set('Idempotency-Key', `itest-advance-${response.body.order.id}-${Date.now()}`)
+      .send({ orderId: response.body.order.id });
+
+    expect(advance.status).toBe(200);
+    expect(advance.body.fromStageName).toBe('Verification');
+    expect(advance.body.toStageName).toBe('Model Room');
+    expect(advance.body.order.current_stage_id).toBe(advance.body.toStageId);
+
+    const { rows: historyRows } = await pool.query(
+      `SELECT ps.name AS stage_name, h.status, h.notes
+       FROM order_stage_history h
+       JOIN production_stages ps ON ps.id = h.stage_id
+       WHERE h.order_id = $1
+       ORDER BY h.id DESC
+       LIMIT 2`,
+      [response.body.order.id]
+    );
+    expect(historyRows).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ stage_name: 'Verification', status: 'COMPLETED' }),
+        expect.objectContaining({ stage_name: 'Model Room', status: 'IN_PROGRESS' }),
       ])
     );
   });
@@ -343,6 +440,7 @@ describe('pilot integration workflow against real database', () => {
 
   test('rejects invalid MTO customer names before creating workflow data', async () => {
     const shopToken = await login('shopmanager@example.com');
+    const customerNumber = `303${String(Date.now()).slice(-7)}`;
 
     const response = await request(app)
       .post('/api/orders')
@@ -350,7 +448,7 @@ describe('pilot integration workflow against real database', () => {
       .set('Idempotency-Key', `itest-invalid-name-${Date.now()}`)
       .field('customerName', '123456789012')
       .field('customerCountryCode', '+92')
-      .field('customerNumber', `303${String(Date.now()).slice(-7)}`)
+      .field('customerNumber', customerNumber)
       .field('customerAddress', 'Invalid name address')
       .field('deliveryAddress', 'Invalid name delivery')
       .field('orderDate', futureDate(0))
@@ -363,5 +461,51 @@ describe('pilot integration workflow against real database', () => {
 
     expect(response.status).toBe(400);
     expect(response.body.message).toMatch(/Customer name must contain letters/i);
+
+    const normalizedNumber = `+92${customerNumber}`;
+    const { rows: orderRows } = await pool.query(
+      `SELECT id FROM orders WHERE customer_number = $1`,
+      [normalizedNumber]
+    );
+    expect(orderRows).toHaveLength(0);
+
+    const { rows: accountRows } = await pool.query(
+      `SELECT id FROM customer_accounts WHERE customer_number = $1`,
+      [normalizedNumber]
+    );
+    expect(accountRows).toHaveLength(0);
+  });
+
+  test('rejects impossible advance payments without creating accounts or ledger residue', async () => {
+    const shopToken = await login('shopmanager@example.com');
+    const customerNumber = `306${String(Date.now()).slice(-7)}`;
+    const { response } = await createPilotOrder(
+      shopToken,
+      {
+        customerNumber,
+        productPrice: '1000',
+        advancePaid: '1001',
+      },
+      'itest-invalid-advance'
+    );
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toMatch(/Advance cannot exceed price/i);
+
+    const normalizedNumber = `+92${customerNumber}`;
+    const { rows: accountRows } = await pool.query(
+      `SELECT id FROM customer_accounts WHERE customer_number = $1`,
+      [normalizedNumber]
+    );
+    expect(accountRows).toHaveLength(0);
+
+    const { rows: ledgerRows } = await pool.query(
+      `SELECT le.id
+       FROM customer_ledger_entries le
+       JOIN customer_accounts ca ON ca.id = le.account_id
+       WHERE ca.customer_number = $1`,
+      [normalizedNumber]
+    );
+    expect(ledgerRows).toHaveLength(0);
   });
 });
