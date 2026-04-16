@@ -1,5 +1,5 @@
 const express = require('express');
-const { authRequired, requireRoles } = require('../middleware/auth');
+const { authRequired, requirePermission } = require('../middleware/auth');
 const {
   listRawStoreOverview,
   listRawStoreItems,
@@ -45,55 +45,56 @@ const {
 } = require('../controllers/rawMaterialStoreController');
 
 const router = express.Router();
-const READ_ROLES = ['PRODUCTION_SUPERVISOR', 'PRODUCTION_MANAGER', 'SUPER_USER', 'FINANCE', 'RETAIL'];
-const WRITE_ROLES = ['PRODUCTION_MANAGER', 'SUPER_USER', 'FINANCE'];
+const canViewRawStore = requirePermission('raw_store_view_module');
+const canManageRawStoreTransactions = requirePermission('raw_store_manage_transactions');
+const canManageRawStoreRules = requirePermission('raw_store_manage_rules');
 
 router.use(authRequired);
 
-router.get('/overview', requireRoles(...READ_ROLES), listRawStoreOverview);
-router.get('/items', requireRoles(...READ_ROLES), listRawStoreItems);
-router.get('/warehouses', requireRoles(...READ_ROLES), listRawStoreWarehouses);
-router.get('/balances', requireRoles(...READ_ROLES), listRawStoreBalances);
-router.get('/transactions', requireRoles(...READ_ROLES), listRawStoreTransactions);
-router.get('/bins', requireRoles(...READ_ROLES), listRawStoreBins);
-router.post('/bins', requireRoles(...WRITE_ROLES), createRawStoreBin);
+router.get('/overview', canViewRawStore, listRawStoreOverview);
+router.get('/items', canViewRawStore, listRawStoreItems);
+router.get('/warehouses', canViewRawStore, listRawStoreWarehouses);
+router.get('/balances', canViewRawStore, listRawStoreBalances);
+router.get('/transactions', canViewRawStore, listRawStoreTransactions);
+router.get('/bins', canViewRawStore, listRawStoreBins);
+router.post('/bins', canManageRawStoreRules, createRawStoreBin);
 
-router.get('/grns', requireRoles(...READ_ROLES), listRawStoreGrns);
-router.post('/grns', requireRoles(...WRITE_ROLES), createRawStoreGrn);
+router.get('/grns', canViewRawStore, listRawStoreGrns);
+router.post('/grns', canManageRawStoreTransactions, createRawStoreGrn);
 
-router.post('/issues', requireRoles(...WRITE_ROLES), issueRawMaterial);
-router.post('/transfers', requireRoles(...WRITE_ROLES), transferRawMaterial);
-router.post('/adjustments', requireRoles(...WRITE_ROLES), adjustRawMaterial);
+router.post('/issues', canManageRawStoreTransactions, issueRawMaterial);
+router.post('/transfers', canManageRawStoreTransactions, transferRawMaterial);
+router.post('/adjustments', canManageRawStoreTransactions, adjustRawMaterial);
 
-router.get('/requisitions', requireRoles(...READ_ROLES), listRawStoreRequisitions);
-router.post('/requisitions', requireRoles(...READ_ROLES), createRawStoreRequisition);
-router.post('/requisitions/:id/approve', requireRoles(...WRITE_ROLES), approveRawStoreRequisition);
-router.post('/requisitions/:id/issue', requireRoles(...WRITE_ROLES), issueRawStoreRequisition);
+router.get('/requisitions', canViewRawStore, listRawStoreRequisitions);
+router.post('/requisitions', canManageRawStoreTransactions, createRawStoreRequisition);
+router.post('/requisitions/:id/approve', canManageRawStoreTransactions, approveRawStoreRequisition);
+router.post('/requisitions/:id/issue', canManageRawStoreTransactions, issueRawStoreRequisition);
 
-router.get('/reorder-suggestions', requireRoles(...READ_ROLES), listRawStoreReorderSuggestions);
-router.get('/putaway-rules', requireRoles(...READ_ROLES), listPutawayRules);
-router.post('/putaway-rules', requireRoles(...WRITE_ROLES), createPutawayRule);
-router.get('/cycle-counts', requireRoles(...READ_ROLES), listCycleCounts);
-router.post('/cycle-counts', requireRoles(...WRITE_ROLES), createCycleCount);
-router.get('/cycle-count-policies', requireRoles(...READ_ROLES), listCycleCountPolicies);
-router.post('/cycle-count-policies', requireRoles(...WRITE_ROLES), upsertCycleCountPolicy);
-router.post('/cycle-counts/:id/post', requireRoles(...WRITE_ROLES), postCycleCount);
-router.get('/replenishment-rules', requireRoles(...READ_ROLES), listReplenishmentRules);
-router.post('/replenishment-rules', requireRoles(...WRITE_ROLES), upsertReplenishmentRule);
-router.post('/replenishment-rules/generate', requireRoles(...WRITE_ROLES), generateReplenishmentSuggestions);
-router.get('/pick-waves', requireRoles(...READ_ROLES), listPickWaves);
-router.post('/pick-waves', requireRoles(...WRITE_ROLES), createPickWave);
-router.post('/barcode/actions', requireRoles(...READ_ROLES), runBarcodeAction);
-router.get('/reports/aging', requireRoles(...READ_ROLES), getRawStoreAgingReport);
-router.get('/reports/min-max', requireRoles(...READ_ROLES), getRawStoreMinMaxReport);
-router.get('/reports/movement', requireRoles(...READ_ROLES), getRawStoreMovementReport);
-router.get('/reports/valuation', requireRoles(...READ_ROLES), getValuationReport);
-router.get('/routing-rules', requireRoles(...READ_ROLES), listRoutingRules);
-router.post('/routing-rules', requireRoles(...WRITE_ROLES), createRoutingRule);
-router.get('/routing-rules/resolve', requireRoles(...READ_ROLES), resolveRoutingRule);
-router.get('/procurement-runs', requireRoles(...READ_ROLES), listProcurementRuns);
-router.post('/procurement-runs/scheduler', requireRoles(...WRITE_ROLES), runProcurementScheduler);
-router.get('/scanner/queue', requireRoles(...READ_ROLES), getScannerQueue);
-router.post('/scanner/pick-scan', requireRoles(...READ_ROLES), scanPickLine);
+router.get('/reorder-suggestions', canViewRawStore, listRawStoreReorderSuggestions);
+router.get('/putaway-rules', canViewRawStore, listPutawayRules);
+router.post('/putaway-rules', canManageRawStoreRules, createPutawayRule);
+router.get('/cycle-counts', canViewRawStore, listCycleCounts);
+router.post('/cycle-counts', canManageRawStoreRules, createCycleCount);
+router.get('/cycle-count-policies', canViewRawStore, listCycleCountPolicies);
+router.post('/cycle-count-policies', canManageRawStoreRules, upsertCycleCountPolicy);
+router.post('/cycle-counts/:id/post', canManageRawStoreTransactions, postCycleCount);
+router.get('/replenishment-rules', canViewRawStore, listReplenishmentRules);
+router.post('/replenishment-rules', canManageRawStoreRules, upsertReplenishmentRule);
+router.post('/replenishment-rules/generate', canManageRawStoreRules, generateReplenishmentSuggestions);
+router.get('/pick-waves', canViewRawStore, listPickWaves);
+router.post('/pick-waves', canManageRawStoreTransactions, createPickWave);
+router.post('/barcode/actions', canManageRawStoreTransactions, runBarcodeAction);
+router.get('/reports/aging', canViewRawStore, getRawStoreAgingReport);
+router.get('/reports/min-max', canViewRawStore, getRawStoreMinMaxReport);
+router.get('/reports/movement', canViewRawStore, getRawStoreMovementReport);
+router.get('/reports/valuation', canViewRawStore, getValuationReport);
+router.get('/routing-rules', canViewRawStore, listRoutingRules);
+router.post('/routing-rules', canManageRawStoreRules, createRoutingRule);
+router.get('/routing-rules/resolve', canViewRawStore, resolveRoutingRule);
+router.get('/procurement-runs', canViewRawStore, listProcurementRuns);
+router.post('/procurement-runs/scheduler', canManageRawStoreRules, runProcurementScheduler);
+router.get('/scanner/queue', canViewRawStore, getScannerQueue);
+router.post('/scanner/pick-scan', canManageRawStoreTransactions, scanPickLine);
 
 module.exports = router;

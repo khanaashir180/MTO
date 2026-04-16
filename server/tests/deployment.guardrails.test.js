@@ -42,6 +42,18 @@ describe('deployment and route guardrails', () => {
     expect(crmRoutes).toContain('requireRoleOrPermission');
   });
 
+  test('MRP and raw material store routes are governed by permissions, not hard-coded role lists', () => {
+    const mrpRoutes = readRepoFile('server/src/routes/mrpRoutes.js');
+    const rawStoreRoutes = readRepoFile('server/src/routes/rawMaterialStoreRoutes.js');
+
+    expect(mrpRoutes).not.toContain('requireRoles(');
+    expect(rawStoreRoutes).not.toContain('requireRoles(');
+    expect(mrpRoutes).toContain("requirePermission('mrp_view_module')");
+    expect(mrpRoutes).toContain("requirePermission('mrp_manage_planning')");
+    expect(rawStoreRoutes).toContain("requirePermission('raw_store_view_module')");
+    expect(rawStoreRoutes).toContain("requirePermission('raw_store_manage_transactions')");
+  });
+
   test('order routes are permission-gated for branch operations', () => {
     const orderRoutes = readRepoFile('server/src/routes/orderRoutes.js');
 

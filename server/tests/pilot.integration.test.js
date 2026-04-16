@@ -110,6 +110,7 @@ describe('pilot integration workflow against real database', () => {
     const shopToken = await login('shopmanager@example.com');
     const financeToken = await login('finance@example.com');
     const serviceToken = await login('service@example.com');
+    const supervisorToken = await login('verification@example.com');
 
     const adminUsers = await request(app)
       .get('/api/auth/users')
@@ -144,6 +145,30 @@ describe('pilot integration workflow against real database', () => {
       .get('/api/crm/summary')
       .set('Authorization', `Bearer ${shopToken}`);
     expect(crmBlockedForShop.status).toBe(403);
+
+    const mrpDashboard = await request(app)
+      .get('/api/mrp/dashboard')
+      .set('Authorization', `Bearer ${supervisorToken}`);
+    expect(mrpDashboard.status).toBe(200);
+    expect(mrpDashboard.body).toHaveProperty('workOrders');
+
+    const supervisorBlockedFromMrpWrite = await request(app)
+      .post('/api/mrp/items')
+      .set('Authorization', `Bearer ${supervisorToken}`)
+      .send({ sku: 'NO-WRITE', itemName: 'Blocked item' });
+    expect(supervisorBlockedFromMrpWrite.status).toBe(403);
+
+    const rawStoreOverview = await request(app)
+      .get('/api/raw-store/overview')
+      .set('Authorization', `Bearer ${supervisorToken}`);
+    expect(rawStoreOverview.status).toBe(200);
+    expect(rawStoreOverview.body).toHaveProperty('kpis');
+
+    const supervisorBlockedFromRawStoreWrite = await request(app)
+      .post('/api/raw-store/bins')
+      .set('Authorization', `Bearer ${supervisorToken}`)
+      .send({ binCode: 'NO-WRITE' });
+    expect(supervisorBlockedFromRawStoreWrite.status).toBe(403);
   });
 
   test('customer lookup validates missing numbers and identifies new customers', async () => {

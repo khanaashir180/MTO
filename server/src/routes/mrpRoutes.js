@@ -1,5 +1,5 @@
 const express = require('express');
-const { authRequired, requireRoles } = require('../middleware/auth');
+const { authRequired, requirePermission } = require('../middleware/auth');
 const {
   listMrpDashboard,
   listMrpItems,
@@ -35,48 +35,49 @@ const {
 } = require('../controllers/mrpController');
 
 const router = express.Router();
-const READ_ROLES = ['PRODUCTION_SUPERVISOR', 'PRODUCTION_MANAGER', 'SUPER_USER', 'FINANCE'];
-const WRITE_ROLES = ['PRODUCTION_MANAGER', 'SUPER_USER', 'FINANCE'];
+const canViewMrp = requirePermission('mrp_view_module');
+const canManageMrpPlanning = requirePermission('mrp_manage_planning');
+const canManageMrpIntegrations = requirePermission('mrp_manage_integrations');
 
 router.use(authRequired);
 
-router.get('/dashboard', requireRoles(...READ_ROLES), listMrpDashboard);
-router.get('/items', requireRoles(...READ_ROLES), listMrpItems);
-router.post('/items', requireRoles(...WRITE_ROLES), createMrpItem);
+router.get('/dashboard', canViewMrp, listMrpDashboard);
+router.get('/items', canViewMrp, listMrpItems);
+router.post('/items', canManageMrpPlanning, createMrpItem);
 
-router.get('/boms', requireRoles(...READ_ROLES), listBoms);
-router.post('/boms', requireRoles(...WRITE_ROLES), createBom);
-router.post('/boms/:id/lines', requireRoles(...WRITE_ROLES), addBomLine);
+router.get('/boms', canViewMrp, listBoms);
+router.post('/boms', canManageMrpPlanning, createBom);
+router.post('/boms/:id/lines', canManageMrpPlanning, addBomLine);
 
-router.get('/work-orders', requireRoles(...READ_ROLES), listWorkOrders);
-router.post('/work-orders', requireRoles(...WRITE_ROLES), createWorkOrder);
-router.post('/work-orders/reprioritize', requireRoles(...WRITE_ROLES), reprioritizeWorkOrders);
-router.post('/work-orders/:id/release', requireRoles(...WRITE_ROLES), releaseWorkOrder);
-router.post('/work-orders/:id/start', requireRoles(...WRITE_ROLES), startWorkOrder);
-router.post('/work-orders/:id/complete', requireRoles(...WRITE_ROLES), completeWorkOrder);
-router.get('/work-orders/:id/traceability', requireRoles(...READ_ROLES), listMrpTraceability);
+router.get('/work-orders', canViewMrp, listWorkOrders);
+router.post('/work-orders', canManageMrpPlanning, createWorkOrder);
+router.post('/work-orders/reprioritize', canManageMrpPlanning, reprioritizeWorkOrders);
+router.post('/work-orders/:id/release', canManageMrpPlanning, releaseWorkOrder);
+router.post('/work-orders/:id/start', canManageMrpPlanning, startWorkOrder);
+router.post('/work-orders/:id/complete', canManageMrpPlanning, completeWorkOrder);
+router.get('/work-orders/:id/traceability', canViewMrp, listMrpTraceability);
 
-router.post('/stock/receive', requireRoles(...WRITE_ROLES), receiveMrpStock);
-router.get('/warehouses', requireRoles(...READ_ROLES), listWarehouses);
-router.post('/warehouses', requireRoles(...WRITE_ROLES), createWarehouse);
+router.post('/stock/receive', canManageMrpPlanning, receiveMrpStock);
+router.get('/warehouses', canViewMrp, listWarehouses);
+router.post('/warehouses', canManageMrpPlanning, createWarehouse);
 
-router.get('/planner/capacity', requireRoles(...READ_ROLES), listCapacityPlanner);
-router.post('/work-orders/:id/operations', requireRoles(...WRITE_ROLES), upsertWorkOrderOperations);
-router.get('/shop-floor/queue', requireRoles(...READ_ROLES), listShopFloorQueue);
-router.post('/shop-floor/operations/:id/transition', requireRoles(...WRITE_ROLES), transitionOperation);
+router.get('/planner/capacity', canViewMrp, listCapacityPlanner);
+router.post('/work-orders/:id/operations', canManageMrpPlanning, upsertWorkOrderOperations);
+router.get('/shop-floor/queue', canViewMrp, listShopFloorQueue);
+router.post('/shop-floor/operations/:id/transition', canManageMrpPlanning, transitionOperation);
 
-router.get('/planning/forecasts', requireRoles(...READ_ROLES), listDemandForecasts);
-router.post('/planning/forecasts', requireRoles(...WRITE_ROLES), upsertDemandForecast);
-router.get('/planning/replenishment', requireRoles(...READ_ROLES), listReplenishmentPlan);
+router.get('/planning/forecasts', canViewMrp, listDemandForecasts);
+router.post('/planning/forecasts', canManageMrpPlanning, upsertDemandForecast);
+router.get('/planning/replenishment', canViewMrp, listReplenishmentPlan);
 
-router.get('/shortages', requireRoles(...READ_ROLES), listShortages);
-router.get('/purchase-suggestions', requireRoles(...READ_ROLES), listPurchaseSuggestions);
-router.post('/purchase-suggestions', requireRoles(...WRITE_ROLES), createPurchaseSuggestion);
-router.post('/purchase-suggestions/auto-create-po', requireRoles(...WRITE_ROLES), autoCreatePoFromOpenSuggestions);
-router.post('/purchase-suggestions/:id/create-po', requireRoles(...WRITE_ROLES), createPoFromSuggestion);
+router.get('/shortages', canViewMrp, listShortages);
+router.get('/purchase-suggestions', canViewMrp, listPurchaseSuggestions);
+router.post('/purchase-suggestions', canManageMrpPlanning, createPurchaseSuggestion);
+router.post('/purchase-suggestions/auto-create-po', canManageMrpIntegrations, autoCreatePoFromOpenSuggestions);
+router.post('/purchase-suggestions/:id/create-po', canManageMrpIntegrations, createPoFromSuggestion);
 
-router.get('/integrations', requireRoles(...READ_ROLES), listIntegrations);
-router.post('/integrations', requireRoles(...WRITE_ROLES), createIntegration);
-router.post('/integrations/:id/sync', requireRoles(...WRITE_ROLES), runIntegrationSync);
+router.get('/integrations', canViewMrp, listIntegrations);
+router.post('/integrations', canManageMrpIntegrations, createIntegration);
+router.post('/integrations/:id/sync', canManageMrpIntegrations, runIntegrationSync);
 
 module.exports = router;
