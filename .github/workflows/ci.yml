@@ -53,6 +53,10 @@ jobs:
         run: npm ci
         working-directory: server
 
+      - name: Audit migrations
+        run: npm run audit:migrations
+        working-directory: server
+
       - name: Install PostgreSQL client tools
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 

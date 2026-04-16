@@ -23,11 +23,12 @@ Rules:
 ## Release Steps
 
 1. Make sure the working tree is clean
-2. Run tests/build
-3. Create pre-release backups
-4. Tag the release in Git
-5. Deploy the tagged version
-6. Run smoke tests
+2. Audit migrations with `npm run audit:migrations --prefix server`
+3. Run tests/build
+4. Create pre-release backups
+5. Tag the release in Git
+6. Deploy the tagged version
+7. Run smoke tests
 
 ## Backup Naming
 
@@ -46,6 +47,7 @@ After `.env.production` exists and Docker is running:
 
 This does:
 - verifies the repo is clean
+- keeps migration history immutable by requiring migration audit to pass in CI
 - validates required production env values
 - writes a release manifest in `deploy/releases/`
 - creates versioned DB/uploads backups when the production stack is running
@@ -84,4 +86,6 @@ If database rollback is needed too:
 - never deploy uncommitted code
 - never deploy schema changes without a backup
 - never edit old migrations after release
+- never add a new migration using an existing numeric prefix
+- never use `CREATE TABLE` without `IF NOT EXISTS` in migrations
 - always keep release tags and backup files together in your release notes

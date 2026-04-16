@@ -57,6 +57,8 @@ Goal: harden production deployment and database history protection.
 - Add route matrix tests for all seeded roles against critical modules.
 - Add a release checklist that maps each deployment to migration, backup, rollback, and smoke-test steps.
 
+Status: implemented for migration/release guardrails. CI now runs migration audit before applying database changes, and release workflow documentation calls out migration audit, backups, tags, and rollback discipline.
+
 ## Definition Of Done For Production Readiness
 
 - Every critical route is permission-gated, not role-hardcoded.

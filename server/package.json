@@ -14,6 +14,7 @@
     "backup:db": "node scripts/backup-db.js",
     "restore:db": "node scripts/restore-db.js",
     "verify:backup": "node scripts/verify-backup.js",
+    "audit:migrations": "node scripts/audit-migrations.js",
     "validate:workflows": "node scripts/workflowValidationHarness.js",
     "qa:user-audit": "node scripts/qaUserFunctionAudit.js",
     "qa:route-matrix": "node scripts/qaRouteMatrixAudit.js"
