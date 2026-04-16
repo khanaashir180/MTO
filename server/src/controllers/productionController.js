@@ -2,13 +2,7 @@ const pool = require('../config/db');
 const { ApiError } = require('../utils/errors');
 const { isFlagEnabled } = require('../utils/featureFlags');
 const { resolveWorkflowTransition } = require('../utils/workflowEngine');
-
-const FLOW_STAGES = {
-  BESPOKE: ['Verification', 'Bespoke', 'Model Room', 'Cutting', 'Closing', 'Sole', 'Lasting', 'Finishing', 'QC', 'Packing'],
-  EMBROIDERY: ['Verification', 'Embroidery', 'Closing', 'Sole', 'Lasting', 'Finishing', 'QC', 'Packing'],
-  LASER: ['Verification', 'Laser', 'Closing', 'Sole', 'Lasting', 'Finishing', 'QC', 'Packing'],
-  MTO: ['Verification', 'Model Room', 'Cutting', 'Closing', 'Lasting', 'Finishing', 'QC', 'Packing'],
-};
+const { PRODUCTION_FLOW_STAGES, normalizeProductionFlow, getProductionFlowStages } = require('../constants/productionFlows');
 
 const STAGE_SLA_HOURS = {
   Verification: 12,
@@ -32,9 +26,7 @@ const TARGET_APPROVAL_ABSOLUTE_DELTA = 40;
 const TARGET_APPROVAL_PERCENT_DELTA = 0.3;
 
 function normalizeFlow(flow) {
-  const value = String(flow || 'BESPOKE').toUpperCase();
-  if (FLOW_STAGES[value]) return value;
-  return 'BESPOKE';
+  return normalizeProductionFlow(flow);
 }
 
 function targetChangeNeedsApproval(previousTarget, nextTarget, settings = {}) {
@@ -134,7 +126,7 @@ function getNotificationSlaHours(type, escalationLevel = 0) {
 
 function getNextStageName(currentStageName, flow) {
   const flowKey = normalizeFlow(flow);
-  const steps = FLOW_STAGES[flowKey];
+  const steps = getProductionFlowStages(flowKey);
   const idx = steps.indexOf(currentStageName);
   if (idx < 0 || idx === steps.length - 1) return null;
   return steps[idx + 1];
@@ -142,7 +134,7 @@ function getNextStageName(currentStageName, flow) {
 
 function getPreviousStageName(currentStageName, flow) {
   const flowKey = normalizeFlow(flow);
-  const steps = FLOW_STAGES[flowKey];
+  const steps = getProductionFlowStages(flowKey);
   const idx = steps.indexOf(currentStageName);
   if (idx <= 0) return null;
   return steps[idx - 1];
@@ -1270,7 +1262,7 @@ async function getStageReport(req, res, next) {
     });
     const flowKeys = [...new Set(currentItems.map((item) => normalizeFlow(item.production_flow)))];
     const dependencyChain = flowKeys.map((flowKey) => {
-      const stages = FLOW_STAGES[flowKey] || [];
+      const stages = PRODUCTION_FLOW_STAGES[flowKey] || [];
       const currentIndex = stages.indexOf(stage.name);
       return {
         flow: flowKey,

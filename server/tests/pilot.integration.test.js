@@ -533,4 +533,33 @@ describe('pilot integration workflow against real database', () => {
     );
     expect(ledgerRows).toHaveLength(0);
   });
+
+  test('rejects invalid production flow without creating customer or order records', async () => {
+    const shopToken = await login('shopmanager@example.com');
+    const customerNumber = `307${String(Date.now()).slice(-7)}`;
+    const { response } = await createPilotOrder(
+      shopToken,
+      {
+        customerNumber,
+        productionFlow: 'REMAKE',
+      },
+      'itest-invalid-flow'
+    );
+
+    expect(response.status).toBe(400);
+    expect(response.body.message).toMatch(/Invalid production flow/i);
+
+    const normalizedNumber = `+92${customerNumber}`;
+    const { rows: orderRows } = await pool.query(
+      `SELECT id FROM orders WHERE customer_number = $1`,
+      [normalizedNumber]
+    );
+    expect(orderRows).toHaveLength(0);
+
+    const { rows: accountRows } = await pool.query(
+      `SELECT id FROM customer_accounts WHERE customer_number = $1`,
+      [normalizedNumber]
+    );
+    expect(accountRows).toHaveLength(0);
+  });
 });

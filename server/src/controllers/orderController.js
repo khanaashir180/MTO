@@ -8,6 +8,14 @@ const { ApiError } = require('../utils/errors');
 const { buildLateOrdersCsv } = require('../utils/csv');
 const { streamLateOrdersPdf } = require('../utils/pdf');
 const { secureUploadedFile } = require('../utils/fileSecurity');
+const { isValidProductionFlow, normalizeProductionFlow } = require('../constants/productionFlows');
+const {
+  digitsOnly,
+  isValidCustomerName,
+  isValidOrderType,
+  normalizeCustomerNumber,
+  normalizeOrderType,
+} = require('../utils/orderValidation');
 const { postOrderLedgerEntries, ensureAccount } = require('./financeController');
 
 function toPublicUrl(req, filename) {
@@ -151,10 +159,6 @@ function getRetailOutletScope(req) {
   return null;
 }
 
-function digitsOnly(value) {
-  return String(value || '').replace(/\D/g, '');
-}
-
 function buildCustomerNumberCandidates(customerNumber, customerCountryCode = '') {
   const rawDigits = digitsOnly(customerNumber);
   const countryDigits = digitsOnly(customerCountryCode);
@@ -183,26 +187,6 @@ function buildCustomerLocalTail(customerNumber, customerCountryCode = '') {
   }
   localDigits = localDigits.replace(/^0+/, '');
   return localDigits.length >= 7 ? localDigits : '';
-}
-
-function normalizeCustomerNumber(customerNumber, customerCountryCode = '') {
-  const countryDigits = digitsOnly(customerCountryCode);
-  let localDigits = digitsOnly(customerNumber);
-  if (countryDigits && localDigits.startsWith(countryDigits) && localDigits.length > countryDigits.length) {
-    localDigits = localDigits.slice(countryDigits.length);
-  }
-  localDigits = localDigits.replace(/^0+/, '');
-  if (!countryDigits || !localDigits) return '';
-  return `+${countryDigits}${localDigits}`;
-}
-
-function isValidCustomerName(customerName) {
-  const normalized = String(customerName || '').trim();
-  const digitCount = (normalized.match(/\d/g) || []).length;
-  return Boolean(normalized)
-    && /[A-Za-z]/.test(normalized)
-    && digitCount <= 3
-    && !/\d{4,}/.test(normalized);
 }
 
 async function findCustomerAccountByNumber(client, customerNumber, customerCountryCode = '') {
@@ -331,14 +315,15 @@ async function createOrder(req, res, next) {
     if (!normalizedCustomerNumber || !resolvedCustomerAddress || !resolvedDeliveryAddress || !orderDate || !dueDate || !productName) {
       throw new ApiError(400, 'Missing required order fields');
     }
-    const normalizedOrderType = String(orderType || 'MTO').toUpperCase();
-    if (!['MTO', 'REFURBISHMENT', 'RETURN'].includes(normalizedOrderType)) {
+    const normalizedOrderType = normalizeOrderType(orderType);
+    if (!isValidOrderType(normalizedOrderType)) {
       throw new ApiError(400, 'Invalid order type');
     }
-    const normalizedProductionFlow = String(productionFlow || 'BESPOKE').toUpperCase();
-    if (!['BESPOKE', 'EMBROIDERY', 'LASER', 'MTO'].includes(normalizedProductionFlow)) {
+    const requestedProductionFlow = String(productionFlow || 'BESPOKE').trim().toUpperCase();
+    if (!isValidProductionFlow(requestedProductionFlow)) {
       throw new ApiError(400, 'Invalid production flow');
     }
+    const normalizedProductionFlow = normalizeProductionFlow(requestedProductionFlow);
     const effectiveOutlet = req.user.outlet_name || orderedFrom;
     await assertActiveOutlet(client, effectiveOutlet);
     const today = new Date().toISOString().slice(0, 10);
@@ -1103,8 +1088,7 @@ async function updateOrderDetails(req, res, next) {
       return res.status(400).json({ message: 'Order date cannot be before today' });
     }
     if (productionFlow) {
-      const flow = String(productionFlow).toUpperCase();
-      if (!['BESPOKE', 'EMBROIDERY', 'LASER', 'MTO'].includes(flow)) {
+      if (!isValidProductionFlow(productionFlow)) {
         await client.query('ROLLBACK');
         return res.status(400).json({ message: 'Invalid production flow' });
       }
@@ -1147,7 +1131,7 @@ async function updateOrderDetails(req, res, next) {
         dueDate,
         orderedFrom,
         comments,
-        productionFlow ? String(productionFlow).toUpperCase() : null,
+        productionFlow ? normalizeProductionFlow(productionFlow) : null,
         id,
       ]
     );

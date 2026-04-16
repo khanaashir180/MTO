@@ -39,11 +39,13 @@ Status: implemented in this sprint.
 
 Goal: make high-risk workflows easier for a developer to extend without breaking hidden side effects.
 
-- Extract order creation validation and normalization out of `orderController.js`.
+- Extract order/customer validation and normalization out of `orderController.js`.
 - Extract customer account and ledger posting helpers into reusable services.
 - Centralize production flow constants so order creation and production advancement cannot drift.
 - Add tests for invalid production flow, invalid customer number/country code combinations, and delivery-address changes.
 - Replace broad response assumptions in the most-used endpoints with explicit field contracts.
+
+Status: partially implemented. Production-flow rules and order/customer validation helpers are centralized and tested. Ledger/account service extraction remains for the next refactor window because it touches finance posting behavior.
 
 ### Sprint 3: Data Integrity, Audit, And Release Safety
 
