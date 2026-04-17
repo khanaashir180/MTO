@@ -8,6 +8,7 @@ const rateLimit = require('express-rate-limit');
 const env = require('./config/env');
 const logger = require('./utils/logger');
 const { registry, httpRequestCounter, httpRequestDuration } = require('./utils/metrics');
+const { checkDatabaseHealth } = require('./services/databaseHealthService');
 const authRoutes = require('./routes/authRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const productionRoutes = require('./routes/productionRoutes');
@@ -80,6 +81,19 @@ app.use((req, res, next) => {
 });
 
 app.get('/health', (_req, res) => res.json({ ok: true }));
+app.get('/ready', async (_req, res, next) => {
+  try {
+    const database = await checkDatabaseHealth({ includeTables: true });
+    const ready = database.status === 'UP';
+    res.status(ready ? 200 : 503).json({
+      ok: ready,
+      status: ready ? 'READY' : 'NOT_READY',
+      database,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 if (env.metricsEnabled) {
   app.get('/metrics', async (req, res, next) => {
     try {

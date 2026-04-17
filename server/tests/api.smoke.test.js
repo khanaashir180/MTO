@@ -30,6 +30,73 @@ describe('API smoke tests', () => {
     expect(response.body).toEqual({ ok: true });
   });
 
+  test('GET /ready returns API-to-PostgreSQL readiness when DB and required tables are available', async () => {
+    db.query
+      .mockResolvedValueOnce({
+        rows: [{
+          database: 'mto_test',
+          server_time: new Date().toISOString(),
+          has_migration_table: true,
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ applied_count: 83, latest_applied_at: new Date().toISOString() }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          'schema_migrations',
+          'users',
+          'roles',
+          'orders',
+          'production_stages',
+          'customer_accounts',
+          'customer_ledger_entries',
+          'payment_accounts',
+          'feature_flags',
+        ].map((table_name) => ({ table_name })),
+      });
+
+    const response = await request(app).get('/ready');
+    expect(response.status).toBe(200);
+    expect(response.body.ok).toBe(true);
+    expect(response.body.database.status).toBe('UP');
+    expect(response.body.database.tables.missing).toEqual([]);
+    expect(response.body.database.migration.applied_count).toBe(83);
+  });
+
+  test('GET /ready returns 503 when PostgreSQL is unreachable', async () => {
+    db.query.mockRejectedValueOnce(new Error('connection refused'));
+
+    const response = await request(app).get('/ready');
+    expect(response.status).toBe(503);
+    expect(response.body.ok).toBe(false);
+    expect(response.body.database.status).toBe('DOWN');
+    expect(response.body.database.error).toMatch(/connection refused/i);
+  });
+
+  test('GET /ready returns 503 when required PostgreSQL tables are missing', async () => {
+    db.query
+      .mockResolvedValueOnce({
+        rows: [{
+          database: 'mto_test',
+          server_time: new Date().toISOString(),
+          has_migration_table: true,
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ applied_count: 80, latest_applied_at: new Date().toISOString() }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ table_name: 'schema_migrations' }, { table_name: 'users' }],
+      });
+
+    const response = await request(app).get('/ready');
+    expect(response.status).toBe(503);
+    expect(response.body.ok).toBe(false);
+    expect(response.body.database.status).toBe('DEGRADED');
+    expect(response.body.database.tables.missing).toContain('orders');
+  });
+
   test('POST /api/auth/login returns 401 for unknown user', async () => {
     db.query
       .mockResolvedValueOnce({ rows: [] }) // security settings

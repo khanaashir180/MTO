@@ -6,6 +6,7 @@ const { ApiError } = require('../utils/errors');
 const { stringify } = require('csv-stringify/sync');
 const { clearFeatureFlagCache, isFlagEnabled } = require('../utils/featureFlags');
 const { runWorkflowValidationHarness } = require('../../scripts/workflowValidationHarness');
+const { checkDatabaseHealth } = require('../services/databaseHealthService');
 
 const workflowValidationReportDir = path.resolve(__dirname, '..', '..', 'reports', 'workflow-validation');
 let workflowValidationRunInProgress = false;
@@ -13,23 +14,14 @@ let workflowValidationRunInProgress = false;
 async function getDependencyHealth(_req, res, next) {
   try {
     const startedAt = Date.now();
-    let dbStatus = 'DOWN';
-    let dbLatencyMs = null;
-    try {
-      const dbStart = Date.now();
-      await pool.query('SELECT 1');
-      dbLatencyMs = Date.now() - dbStart;
-      dbStatus = 'UP';
-    } catch (_error) {
-      dbStatus = 'DOWN';
-    }
+    const database = await checkDatabaseHealth({ includeTables: true });
     const uploadRoot = path.resolve(__dirname, '..', '..', env.uploadDir);
     const storageWritable = fs.existsSync(uploadRoot) && fs.statSync(uploadRoot).isDirectory();
     res.json({
-      status: dbStatus === 'UP' && storageWritable ? 'HEALTHY' : 'DEGRADED',
+      status: database.status === 'UP' && storageWritable ? 'HEALTHY' : 'DEGRADED',
       latency_ms: Date.now() - startedAt,
       dependencies: {
-        database: { status: dbStatus, latency_ms: dbLatencyMs },
+        database,
         storage: { status: storageWritable ? 'UP' : 'DOWN', path: uploadRoot },
         sockets: { status: 'UP' },
       },

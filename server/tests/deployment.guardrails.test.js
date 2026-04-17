@@ -14,7 +14,7 @@ describe('deployment and route guardrails', () => {
 
     expect(railway.build.builder).toBe('DOCKERFILE');
     expect(railway.build.dockerfilePath).toBe('Dockerfile.railway');
-    expect(railway.deploy.healthcheckPath).toBe('/health');
+    expect(railway.deploy.healthcheckPath).toBe('/ready');
     expect(dockerfile).toContain('COPY server/package*.json ./');
     expect(dockerfile).toContain('postgresql-client');
     expect(dockerfile).toContain('npm", "run", "railway:start');
@@ -29,11 +29,23 @@ describe('deployment and route guardrails', () => {
     expect(packageJson.scripts['railway:start']).toBe('node scripts/railway-start.js');
     expect(packageJson.scripts['railway:preflight']).toBe('node scripts/railway-preflight.js');
     expect(packageJson.scripts['migration:status']).toBe('node scripts/migration-status.js');
+    expect(packageJson.scripts['smoke:api-db']).toBe('node scripts/api-db-smoke.js');
     expect(railwayStart).toContain("run('preflight'");
     expect(railwayStart).toContain("run('migrations'");
     expect(railwayPreflight).toContain('backup verification gate');
     expect(railwayPreflight).toContain('migration status');
     expect(migrationRunner).toContain('pg_try_advisory_lock');
+  });
+
+  test('readiness endpoint performs real PostgreSQL and required-table checks', () => {
+    const app = readRepoFile('server/src/app.js');
+    const dbHealthService = readRepoFile('server/src/services/databaseHealthService.js');
+
+    expect(app).toContain("app.get('/ready'");
+    expect(app).toContain('checkDatabaseHealth({ includeTables: true })');
+    expect(dbHealthService).toContain('information_schema.tables');
+    expect(dbHealthService).toContain('schema_migrations');
+    expect(dbHealthService).toContain('customer_ledger_entries');
   });
 
   test('Vercel deploy remains frontend-only and points SPA routes to index.html', () => {
