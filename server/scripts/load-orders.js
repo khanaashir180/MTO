@@ -64,6 +64,17 @@ function futureDate(days) {
   return date.toISOString().slice(0, 10);
 }
 
+function alphabeticName(index) {
+  const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+  let n = index;
+  let suffix = '';
+  do {
+    suffix = letters[n % letters.length] + suffix;
+    n = Math.floor(n / letters.length) - 1;
+  } while (n >= 0);
+  return `Load Test Customer ${suffix}`;
+}
+
 async function worker(token, queue, results) {
   while (queue.length) {
     const index = queue.shift();
@@ -74,7 +85,7 @@ async function worker(token, queue, results) {
         token,
         idempotencyKey: `load-order-${Date.now()}-${index}`,
         body: multipart({
-          customerName: `Load Test Customer ${suffix}`,
+          customerName: alphabeticName(index),
           customerCountryCode: '+92',
           customerNumber: `349${suffix}`,
           customerAddress: 'Load test billing address',
