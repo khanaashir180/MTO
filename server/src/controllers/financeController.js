@@ -257,12 +257,13 @@ async function postLedgerEntry(req, res, next) {
       }
     }
 
+    const verificationStatus = normalizedType === 'CREDIT' && normalizedCategory === 'RECEIPT'
+      ? 'PENDING'
+      : 'NOT_REQUIRED';
     const inserted = await client.query(
       `INSERT INTO customer_ledger_entries
        (account_id, entry_date, entry_type, category, amount, reference_order_id, payment_account_id, notes, created_by, verification_status, created_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8,
-               CASE WHEN $3 = 'CREDIT' AND $4 = 'RECEIPT' THEN 'PENDING' ELSE 'NOT_REQUIRED' END,
-               NOW())
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, NOW())
        RETURNING id, entry_date, entry_type, category, amount, reference_order_id, payment_account_id, notes, verification_status, created_at`,
       [
         accountId,
@@ -274,6 +275,7 @@ async function postLedgerEntry(req, res, next) {
         parsedPaymentAccountId,
         notes || null,
         req.user.id,
+        verificationStatus,
       ]
     );
 

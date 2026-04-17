@@ -366,7 +366,7 @@ describe('order → ledger integration', () => {
       `SELECT id FROM customer_accounts
        WHERE regexp_replace(customer_number, '[^0-9]', '', 'g')
            = regexp_replace($1, '[^0-9]', '', 'g')`,
-      [phone]
+      [`+92${phone}`]
     );
     expect(accounts).toHaveLength(1);
   });
