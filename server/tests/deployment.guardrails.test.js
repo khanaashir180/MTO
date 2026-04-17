@@ -16,6 +16,8 @@ describe('deployment and route guardrails', () => {
     expect(railway.build.dockerfilePath).toBe('Dockerfile.railway');
     expect(railway.deploy.healthcheckPath).toBe('/health');
     expect(dockerfile).toContain('COPY server/package*.json ./');
+    expect(dockerfile).toContain('postgresql-client');
+    expect(dockerfile).toContain('npm run pre-deploy-check');
     expect(dockerfile).toContain('npm run migrate && npm run start');
   });
 

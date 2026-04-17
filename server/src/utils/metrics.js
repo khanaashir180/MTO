@@ -27,10 +27,28 @@ const uploadRejectedCounter = new client.Counter({
   labelNames: ['reason'],
 });
 
+const dbPoolTotalGauge = new client.Gauge({
+  name: 'mto_db_pool_total',
+  help: 'Total PostgreSQL clients currently managed by the pool',
+});
+
+const dbPoolIdleGauge = new client.Gauge({
+  name: 'mto_db_pool_idle',
+  help: 'Idle PostgreSQL clients currently available in the pool',
+});
+
+const dbPoolWaitingGauge = new client.Gauge({
+  name: 'mto_db_pool_waiting',
+  help: 'Requests waiting for a PostgreSQL client from the pool',
+});
+
 registry.registerMetric(httpRequestCounter);
 registry.registerMetric(httpRequestDuration);
 registry.registerMetric(authFailedCounter);
 registry.registerMetric(uploadRejectedCounter);
+registry.registerMetric(dbPoolTotalGauge);
+registry.registerMetric(dbPoolIdleGauge);
+registry.registerMetric(dbPoolWaitingGauge);
 
 module.exports = {
   registry,
@@ -38,4 +56,7 @@ module.exports = {
   httpRequestDuration,
   authFailedCounter,
   uploadRejectedCounter,
+  dbPoolTotalGauge,
+  dbPoolIdleGauge,
+  dbPoolWaitingGauge,
 };

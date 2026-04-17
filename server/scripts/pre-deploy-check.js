@@ -40,13 +40,19 @@ function logAudit(label, value) {
 async function runChecks() {
   log('Starting pre-deployment checks…');
 
-  // ── Guard: skip gracefully when S3 credentials are not configured ──────────
+  // Guard: local and CI can opt out, production cannot.
   const s3Vars = ['BUCKET', 'ENDPOINT', 'ACCESS_KEY_ID', 'SECRET_ACCESS_KEY'];
   const missingVars = s3Vars.filter((k) => !process.env[k]);
   if (missingVars.length) {
-    log(`WARNING: S3 credentials not configured (${missingVars.join(', ')}). Skipping backup verification.`);
-    log('Pre-deploy check SKIPPED (no S3 credentials). Deploy may proceed.');
-    process.exit(0);
+    const maySkip = process.env.ALLOW_PREDEPLOY_BACKUP_SKIP === 'true' || process.env.NODE_ENV === 'test';
+    if (maySkip) {
+      log(`WARNING: S3 credentials not configured (${missingVars.join(', ')}). Skipping backup verification by explicit local/test opt-out.`);
+      log('Pre-deploy check SKIPPED. Do not use this mode for production deploys.');
+      process.exit(0);
+    }
+    logError(`Missing S3 credentials: ${missingVars.join(', ')}`);
+    logError('Deployment blocked. Configure Railway object storage env vars or set ALLOW_PREDEPLOY_BACKUP_SKIP=true only for local/test runs.');
+    process.exit(1);
   }
 
   // ── Check 1: Verify latest backup ─────────────────────────────────────────

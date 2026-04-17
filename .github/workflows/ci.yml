@@ -94,6 +94,16 @@ jobs:
         run: npm run test:integration
         working-directory: server
 
+      - name: Run post-deploy data validation audit
+        run: npm run audit:data
+        working-directory: server
+        env:
+          DATA_AUDIT_STRICT: true
+
+      - name: Run DB recovery chaos check
+        run: npm run chaos:db
+        working-directory: server
+
   railway-image-smoke:
     runs-on: ubuntu-latest
     services:
@@ -129,6 +139,7 @@ jobs:
             -e CLIENT_ORIGIN=http://localhost:3000 \
             -e UPLOAD_DIR=/app/uploads \
             -e METRICS_TOKEN=ci-railway-metrics-token \
+            -e ALLOW_PREDEPLOY_BACKUP_SKIP=true \
             -e LOG_LEVEL=info \
             mto-railway-ci
 
@@ -154,6 +165,25 @@ jobs:
             -H 'Content-Type: application/json' \
             -d '{"email":"super@example.com","password":"password123"}')
           echo "$response" | node -e "let data=''; process.stdin.on('data', c => data += c); process.stdin.on('end', () => { const parsed = JSON.parse(data); if (!parsed.token || parsed.user?.email !== 'super@example.com') process.exit(1); });"
+
+      - name: Run pre-deploy smoke script against Railway backend container
+        run: npm run pre-deploy-smoke
+        working-directory: server
+        env:
+          SMOKE_BASE_URL: http://localhost:4000
+          SMOKE_LOGIN_EMAIL: super@example.com
+          SMOKE_LOGIN_PASSWORD: password123
+          METRICS_TOKEN: ci-railway-metrics-token
+
+      - name: Run reduced order load test against Railway backend container
+        run: npm run load:orders
+        working-directory: server
+        env:
+          LOAD_BASE_URL: http://localhost:4000
+          LOAD_TOTAL_ORDERS: 50
+          LOAD_CONCURRENCY: 10
+          LOAD_LOGIN_EMAIL: shopmanager@example.com
+          LOAD_LOGIN_PASSWORD: password123
 
       - name: Stop Railway backend container
         if: always()
