@@ -54,7 +54,43 @@ describe('API smoke tests', () => {
           'payment_accounts',
           'feature_flags',
         ].map((table_name) => ({ table_name })),
-      });
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          'schema_migrations',
+          'users',
+          'roles',
+          'orders',
+          'production_stages',
+          'customer_accounts',
+          'customer_ledger_entries',
+          'payment_accounts',
+          'feature_flags',
+        ].flatMap((table_name) => {
+          const columns = {
+            schema_migrations: ['id', 'filename', 'checksum', 'applied_at'],
+            users: ['id', 'email', 'password_hash', 'role_id', 'is_active'],
+            roles: ['id', 'name'],
+            orders: ['id', 'production_order_no', 'customer_number', 'customer_name', 'order_type', 'production_flow', 'status', 'current_stage_id'],
+            production_stages: ['id', 'name', 'sequence'],
+            customer_accounts: ['id', 'customer_number', 'customer_name'],
+            customer_ledger_entries: ['id', 'account_id', 'entry_type', 'category', 'amount', 'reference_order_id'],
+            payment_accounts: ['id', 'name', 'account_type', 'is_active'],
+            feature_flags: ['id', 'flag_key', 'flag_value'],
+          }[table_name];
+          return columns.map((column_name) => ({ table_name, column_name }));
+        }),
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          { indexname: 'idx_orders_due_date' },
+          { indexname: 'idx_orders_status' },
+          { indexname: 'idx_ledger_account_date' },
+          { indexname: 'idx_ledger_order_ref' },
+        ],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
 
     const response = await request(app).get('/ready');
     expect(response.status).toBe(200);
@@ -88,13 +124,54 @@ describe('API smoke tests', () => {
       })
       .mockResolvedValueOnce({
         rows: [{ table_name: 'schema_migrations' }, { table_name: 'users' }],
-      });
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
 
     const response = await request(app).get('/ready');
     expect(response.status).toBe(503);
     expect(response.body.ok).toBe(false);
-    expect(response.body.database.status).toBe('DEGRADED');
+    expect(response.body.database.status).toBe('DOWN');
     expect(response.body.database.tables.missing).toContain('orders');
+  });
+
+  test('GET /ready returns 503 when critical PostgreSQL columns are missing', async () => {
+    db.query
+      .mockResolvedValueOnce({
+        rows: [{
+          database: 'mto_test',
+          postgres_version: '16',
+          server_time: new Date().toISOString(),
+          has_migration_table: true,
+        }],
+      })
+      .mockResolvedValueOnce({
+        rows: [{ applied_count: 83, latest_applied_at: new Date().toISOString() }],
+      })
+      .mockResolvedValueOnce({
+        rows: [
+          'schema_migrations',
+          'users',
+          'roles',
+          'orders',
+          'production_stages',
+          'customer_accounts',
+          'customer_ledger_entries',
+          'payment_accounts',
+          'feature_flags',
+        ].map((table_name) => ({ table_name })),
+      })
+      .mockResolvedValueOnce({
+        rows: [{ table_name: 'orders', column_name: 'id' }],
+      })
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    const response = await request(app).get('/ready');
+    expect(response.status).toBe(503);
+    expect(response.body.database.status).toBe('DOWN');
+    expect(response.body.database.columns.missing).toContain('users.email');
   });
 
   test('POST /api/auth/login returns 401 for unknown user', async () => {

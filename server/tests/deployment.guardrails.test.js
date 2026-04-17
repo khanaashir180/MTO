@@ -30,6 +30,8 @@ describe('deployment and route guardrails', () => {
     expect(packageJson.scripts['railway:preflight']).toBe('node scripts/railway-preflight.js');
     expect(packageJson.scripts['migration:status']).toBe('node scripts/migration-status.js');
     expect(packageJson.scripts['smoke:api-db']).toBe('node scripts/api-db-smoke.js');
+    expect(packageJson.scripts['smoke:backend']).toBe('node scripts/backend-deep-smoke.js');
+    expect(packageJson.scripts['check:db']).toBe('node scripts/db-deep-check.js');
     expect(railwayStart).toContain("run('preflight'");
     expect(railwayStart).toContain("run('migrations'");
     expect(railwayPreflight).toContain('backup verification gate');
@@ -44,8 +46,20 @@ describe('deployment and route guardrails', () => {
     expect(app).toContain("app.get('/ready'");
     expect(app).toContain('checkDatabaseHealth({ includeTables: true })');
     expect(dbHealthService).toContain('information_schema.tables');
+    expect(dbHealthService).toContain('information_schema.columns');
+    expect(dbHealthService).toContain('pg_constraint');
+    expect(dbHealthService).toContain('pg_indexes');
     expect(dbHealthService).toContain('schema_migrations');
     expect(dbHealthService).toContain('customer_ledger_entries');
+  });
+
+  test('CI runs deep database and backend dependency checks', () => {
+    const ci = readRepoFile('.github/workflows/ci.yml');
+
+    expect(ci).toContain('npm run check:db');
+    expect(ci).toContain('npm run smoke:api-db');
+    expect(ci).toContain('npm run smoke:backend');
+    expect(ci).toContain('/ready');
   });
 
   test('Vercel deploy remains frontend-only and points SPA routes to index.html', () => {

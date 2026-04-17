@@ -56,11 +56,20 @@ async function run() {
   if (ready.database?.tables?.missing?.length) {
     throw new Error(`Missing required DB tables: ${ready.database.tables.missing.join(', ')}`);
   }
+  if (ready.database?.columns?.missing?.length) {
+    throw new Error(`Missing required DB columns: ${ready.database.columns.missing.join(', ')}`);
+  }
+  if (ready.database?.constraints?.invalid?.length) {
+    throw new Error(`Invalid DB constraints: ${ready.database.constraints.invalid.map((c) => c.conname).join(', ')}`);
+  }
+  if (Number(ready.database?.migration?.pending_count || 0) > 0) {
+    throw new Error(`Pending migrations detected: ${ready.database.migration.pending_count}`);
+  }
   if (!Number.isFinite(Number(ready.database?.migration?.applied_count))) {
     throw new Error('Migration applied_count is missing from /ready');
   }
 
-  console.log(`[api-db-smoke] PASS api connected to PostgreSQL (${ready.database.database}) with ${ready.database.migration.applied_count} migrations`);
+  console.log(`[api-db-smoke] PASS api connected to PostgreSQL (${ready.database.database}) with ${ready.database.migration.applied_count} migrations and schema integrity checks`);
 }
 
 run().catch((error) => {

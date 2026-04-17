@@ -72,6 +72,10 @@ jobs:
         run: npm run migration:status
         working-directory: server
 
+      - name: Run deep PostgreSQL checks
+        run: npm run check:db
+        working-directory: server
+
       - name: Run migrations (idempotency)
         run: npm run migrate
         working-directory: server
@@ -194,6 +198,15 @@ jobs:
           SMOKE_BASE_URL: http://localhost:4000
           SMOKE_LOGIN_EMAIL: super@example.com
           SMOKE_LOGIN_PASSWORD: password123
+          METRICS_TOKEN: ci-railway-metrics-token
+
+      - name: Run deep backend dependency smoke
+        run: npm run smoke:backend
+        working-directory: server
+        env:
+          BACKEND_SMOKE_BASE_URL: http://localhost:4000
+          BACKEND_SMOKE_EMAIL: super@example.com
+          BACKEND_SMOKE_PASSWORD: password123
           METRICS_TOKEN: ci-railway-metrics-token
 
       - name: Run reduced order load test against Railway backend container

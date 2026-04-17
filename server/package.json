@@ -20,6 +20,8 @@
     "pre-deploy-check": "node scripts/pre-deploy-check.js",
     "pre-deploy-smoke": "node scripts/pre-deploy-smoke.js",
     "smoke:api-db": "node scripts/api-db-smoke.js",
+    "smoke:backend": "node scripts/backend-deep-smoke.js",
+    "check:db": "node scripts/db-deep-check.js",
     "load:orders": "node scripts/load-orders.js",
     "chaos:db": "node scripts/chaos-db-recovery.js",
     "audit:data": "node scripts/data-validation-audit.js",
