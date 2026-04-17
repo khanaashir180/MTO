@@ -60,9 +60,9 @@ async function run() {
   });
   if (!login.token) throw new Error('Login did not return a token');
 
-  await requestJson('GET', '/api/v1/orders', { token: login.token });
-  await requestJson('GET', '/api/v1/finance/dashboard', { token: login.token, expected: [200, 404] });
-  await requestJson('GET', '/api/v1/crm', { token: login.token, expected: [200, 404] });
+  await requestJson('GET', '/api/v1/orders/retail-dashboard', { token: login.token });
+  await requestJson('GET', '/api/v1/finance/accounts', { token: login.token });
+  await requestJson('GET', '/api/v1/crm/summary', { token: login.token });
 
   if (METRICS_TOKEN) {
     await new Promise((resolve, reject) => {

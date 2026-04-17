@@ -90,15 +90,15 @@ jobs:
         run: npm run seed
         working-directory: server
 
-      - name: Run database-backed pilot integration tests
-        run: npm run test:integration
-        working-directory: server
-
       - name: Run post-deploy data validation audit
         run: npm run audit:data
         working-directory: server
         env:
           DATA_AUDIT_STRICT: true
+
+      - name: Run database-backed pilot integration tests
+        run: npm run test:integration
+        working-directory: server
 
       - name: Run DB recovery chaos check
         run: npm run chaos:db
