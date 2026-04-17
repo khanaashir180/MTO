@@ -60,13 +60,27 @@ jobs:
       - name: Install PostgreSQL client tools
         run: sudo apt-get update && sudo apt-get install -y postgresql-client
 
+      - name: Check migration status before fresh migration
+        run: npm run migration:status
+        working-directory: server
+
       - name: Run migrations (fresh)
         run: npm run migrate
+        working-directory: server
+
+      - name: Check migration status after fresh migration
+        run: npm run migration:status
         working-directory: server
 
       - name: Run migrations (idempotency)
         run: npm run migrate
         working-directory: server
+
+      - name: Check Railway preflight in CI mode
+        run: npm run railway:preflight
+        working-directory: server
+        env:
+          ALLOW_PREDEPLOY_BACKUP_SKIP: true
 
       - name: Backup DB
         run: npm run backup:db
@@ -140,6 +154,7 @@ jobs:
             -e UPLOAD_DIR=/app/uploads \
             -e METRICS_TOKEN=ci-railway-metrics-token \
             -e ALLOW_PREDEPLOY_BACKUP_SKIP=true \
+            -e RAILWAY_RUN_DATA_AUDIT=true \
             -e LOG_LEVEL=info \
             mto-railway-ci
 

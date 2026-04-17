@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const pool = require('../config/db');
 
 const BASELINE_FLAG = '--baseline-existing';
+const MIGRATION_LOCK_KEY = 42718001;
 
 function checksum(content) {
   return crypto.createHash('sha256').update(content, 'utf8').digest('hex');
@@ -107,6 +108,11 @@ async function runMigration() {
 
   const client = await pool.connect();
   try {
+    const lock = await client.query('SELECT pg_try_advisory_lock($1) AS locked', [MIGRATION_LOCK_KEY]);
+    if (!lock.rows[0]?.locked) {
+      throw new Error('Another migration is already running. Railway deploy blocked to prevent concurrent schema changes.');
+    }
+
     await ensureMigrationsTable(client);
     const appliedBefore = await getAppliedMigrations(client);
     const isEmpty = appliedBefore.size === 0;
@@ -157,6 +163,7 @@ async function runMigration() {
 
     console.log(`Migrations completed. Applied: ${appliedCount}, Skipped: ${skippedCount}`);
   } finally {
+    await client.query('SELECT pg_advisory_unlock($1)', [MIGRATION_LOCK_KEY]).catch(() => {});
     client.release();
     await pool.end();
   }

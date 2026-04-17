@@ -40,10 +40,20 @@ Required object keys:
 Every backend deployment runs this command before migration/start:
 
 ```bash
-npm run pre-deploy-check
+npm run railway:start
 ```
 
-It blocks deployment when the latest S3 backup is missing, older than 24 hours, too small, too large, or checksum-invalid.
+The Railway startup runner performs env validation, database connectivity check, migration audit, migration status check, backup verification, migration execution, optional data audit, then starts the server.
+
+It blocks deployment when the latest S3 backup is missing, older than 24 hours, too small, too large, checksum-invalid, when migration files were edited after being applied, or when another migration is already running.
+
+Before pushing a new release, check migration status locally or in CI:
+
+```bash
+npm run migration:status
+```
+
+If `pendingMigrations` is not empty, confirm the migration is additive/backward-compatible before deploying. Avoid destructive migrations during working hours.
 
 ## Pre-Deploy Smoke Test
 

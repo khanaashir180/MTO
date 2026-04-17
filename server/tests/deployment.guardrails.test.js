@@ -17,8 +17,23 @@ describe('deployment and route guardrails', () => {
     expect(railway.deploy.healthcheckPath).toBe('/health');
     expect(dockerfile).toContain('COPY server/package*.json ./');
     expect(dockerfile).toContain('postgresql-client');
-    expect(dockerfile).toContain('npm run pre-deploy-check');
-    expect(dockerfile).toContain('npm run migrate && npm run start');
+    expect(dockerfile).toContain('npm", "run", "railway:start');
+  });
+
+  test('Railway startup has explicit preflight and migration safety scripts', () => {
+    const packageJson = JSON.parse(readRepoFile('server/package.json'));
+    const railwayStart = readRepoFile('server/scripts/railway-start.js');
+    const railwayPreflight = readRepoFile('server/scripts/railway-preflight.js');
+    const migrationRunner = readRepoFile('server/src/utils/runMigration.js');
+
+    expect(packageJson.scripts['railway:start']).toBe('node scripts/railway-start.js');
+    expect(packageJson.scripts['railway:preflight']).toBe('node scripts/railway-preflight.js');
+    expect(packageJson.scripts['migration:status']).toBe('node scripts/migration-status.js');
+    expect(railwayStart).toContain("run('preflight'");
+    expect(railwayStart).toContain("run('migrations'");
+    expect(railwayPreflight).toContain('backup verification gate');
+    expect(railwayPreflight).toContain('migration status');
+    expect(migrationRunner).toContain('pg_try_advisory_lock');
   });
 
   test('Vercel deploy remains frontend-only and points SPA routes to index.html', () => {
