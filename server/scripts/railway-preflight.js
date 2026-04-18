@@ -11,6 +11,10 @@ const useShell = process.platform === 'win32';
 const REQUIRED_ENV = [
   'DATABASE_URL',
   'JWT_SECRET',
+];
+
+// CLIENT_ORIGIN is optional — env.js falls back to 'http://localhost:3000'
+const OPTIONAL_ENV = [
   'CLIENT_ORIGIN',
 ];
 
@@ -50,6 +54,10 @@ async function checkEnvironment() {
   }
   if (productionMissing.length && process.env.ALLOW_PREDEPLOY_BACKUP_SKIP !== 'true') {
     throw new Error(`Missing production Railway env vars: ${productionMissing.join(', ')}`);
+  }
+  const missingOptional = OPTIONAL_ENV.filter((key) => !process.env[key]);
+  if (missingOptional.length) {
+    console.warn(`[railway-preflight] WARN optional env vars not set (defaults will be used): ${missingOptional.join(', ')}`);
   }
 }
 

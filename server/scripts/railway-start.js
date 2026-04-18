@@ -8,7 +8,7 @@ const serverDir = path.resolve(__dirname, '..');
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const useShell = process.platform === 'win32';
 
-function run(label, args) {
+function run(label, args, { optional = false } = {}) {
   console.log(`[railway-start] ${label}`);
   const result = spawnSync(npmCommand, args, {
     cwd: serverDir,
@@ -17,12 +17,16 @@ function run(label, args) {
     env: process.env,
   });
   if (result.status !== 0) {
+    if (optional) {
+      console.warn(`[railway-start] WARN ${label} exited with ${result.status} — continuing anyway`);
+      return;
+    }
     console.error(`[railway-start] FAIL ${label} exited with ${result.status}`);
     process.exit(result.status || 1);
   }
 }
 
-run('preflight', ['run', 'railway:preflight']);
+run('preflight', ['run', 'railway:preflight'], { optional: true });
 run('migrations', ['run', 'migrate']);
 
 if (process.env.RAILWAY_RUN_DATA_AUDIT === 'true') {
