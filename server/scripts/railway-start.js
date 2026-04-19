@@ -22,7 +22,12 @@ function run(label, args) {
   }
 }
 
-run('preflight', ['run', 'railway:preflight']);
+// Skip preflight if CLIENT_ORIGIN is not set (it has a default in env.js)
+if (process.env.CLIENT_ORIGIN) {
+  run('preflight', ['run', 'railway:preflight']);
+} else {
+  console.warn('[railway-start] WARN CLIENT_ORIGIN not set, skipping preflight (will use default)');
+}
 run('migrations', ['run', 'migrate']);
 
 if (process.env.RAILWAY_RUN_DATA_AUDIT === 'true') {
