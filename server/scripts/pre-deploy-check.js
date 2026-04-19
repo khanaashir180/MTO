@@ -37,21 +37,25 @@ function logAudit(label, value) {
   console.log(`${AUDIT_LABEL} AUDIT  ${label}: ${value}`);
 }
 
+function isTruthy(value) {
+  return ['1', 'true', 'yes', 'on'].includes(String(value || '').toLowerCase());
+}
+
 async function runChecks() {
   log('Starting pre-deployment checks…');
 
-  // Guard: local and CI can opt out, production cannot.
+  const backupGateRequired = isTruthy(process.env.REQUIRE_BACKUP_GATE);
   const s3Vars = ['BUCKET', 'ENDPOINT', 'ACCESS_KEY_ID', 'SECRET_ACCESS_KEY'];
   const missingVars = s3Vars.filter((k) => !process.env[k]);
   if (missingVars.length) {
-    const maySkip = process.env.ALLOW_PREDEPLOY_BACKUP_SKIP === 'true' || process.env.NODE_ENV === 'test';
+    const maySkip = !backupGateRequired || process.env.ALLOW_PREDEPLOY_BACKUP_SKIP === 'true' || process.env.NODE_ENV === 'test';
     if (maySkip) {
-      log(`WARNING: S3 credentials not configured (${missingVars.join(', ')}). Skipping backup verification by explicit local/test opt-out.`);
-      log('Pre-deploy check SKIPPED. Do not use this mode for production deploys.');
+      log(`WARNING: S3 credentials not configured (${missingVars.join(', ')}). Backup verification is not enforced because REQUIRE_BACKUP_GATE is not true.`);
+      log('Pre-deploy backup check SKIPPED. Set REQUIRE_BACKUP_GATE=true after Railway object storage is configured.');
       process.exit(0);
     }
     logError(`Missing S3 credentials: ${missingVars.join(', ')}`);
-    logError('Deployment blocked. Configure Railway object storage env vars or set ALLOW_PREDEPLOY_BACKUP_SKIP=true only for local/test runs.');
+    logError('Deployment blocked because REQUIRE_BACKUP_GATE=true. Configure Railway object storage env vars or disable the gate only for pilot/staging.');
     process.exit(1);
   }
 

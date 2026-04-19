@@ -11,15 +11,6 @@ const useShell = process.platform === 'win32';
 const REQUIRED_ENV = [
   'DATABASE_URL',
   'JWT_SECRET',
-  'CLIENT_ORIGIN',
-];
-
-const PRODUCTION_REQUIRED_ENV = [
-  'BUCKET',
-  'ENDPOINT',
-  'ACCESS_KEY_ID',
-  'SECRET_ACCESS_KEY',
-  'METRICS_TOKEN',
 ];
 
 function runStep(label, command, args, options = {}) {
@@ -41,15 +32,18 @@ function runStep(label, command, args, options = {}) {
 
 async function checkEnvironment() {
   const missing = REQUIRED_ENV.filter((key) => !process.env[key]);
-  const productionMissing = PRODUCTION_REQUIRED_ENV.filter((key) => !process.env[key]);
   if (String(process.env.JWT_SECRET || '').length < 32) {
     missing.push('JWT_SECRET(minimum 32 chars)');
   }
   if (missing.length) {
     throw new Error(`Missing required env vars: ${missing.join(', ')}`);
   }
-  if (productionMissing.length && process.env.ALLOW_PREDEPLOY_BACKUP_SKIP !== 'true') {
-    throw new Error(`Missing production Railway env vars: ${productionMissing.join(', ')}`);
+
+  if (!process.env.CLIENT_ORIGIN) {
+    console.log('[railway-preflight] WARNING CLIENT_ORIGIN not set; default CORS origin will be used.');
+  }
+  if (!process.env.METRICS_TOKEN) {
+    console.log('[railway-preflight] WARNING METRICS_TOKEN not set; /metrics will remain inaccessible until configured.');
   }
 }
 

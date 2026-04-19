@@ -9,16 +9,17 @@ Backend service:
 - `DATABASE_URL`: Railway PostgreSQL connection string.
 - `JWT_SECRET`: long random secret, minimum 32 characters.
 - `CLIENT_ORIGIN`: deployed frontend URL.
-- `METRICS_TOKEN`: long random token used to access `/metrics`.
-- `BUCKET`: Railway object storage bucket name.
-- `ENDPOINT`: S3-compatible object storage endpoint.
-- `ACCESS_KEY_ID`: object storage access key.
-- `SECRET_ACCESS_KEY`: object storage secret key.
+- `METRICS_TOKEN`: long random token used to access `/metrics`. Recommended for pilot, required before go-live monitoring.
+- `BUCKET`: Railway object storage bucket name. Required when `REQUIRE_BACKUP_GATE=true`.
+- `ENDPOINT`: S3-compatible object storage endpoint. Required when `REQUIRE_BACKUP_GATE=true`.
+- `ACCESS_KEY_ID`: object storage access key. Required when `REQUIRE_BACKUP_GATE=true`.
+- `SECRET_ACCESS_KEY`: object storage secret key. Required when `REQUIRE_BACKUP_GATE=true`.
+- `REQUIRE_BACKUP_GATE`: set to `true` only after object storage backups are configured and verified.
 - `PG_POOL_MAX`: recommended `20` for the pilot.
 - `PG_CONNECTION_TIMEOUT_MS`: recommended `10000`.
 - `PG_IDLE_TIMEOUT_MS`: recommended `30000`.
 
-Do not set `ALLOW_PREDEPLOY_BACKUP_SKIP=true` in production. It is only for local or CI smoke builds where object storage is not available.
+Pilot deployments can start without object storage while `REQUIRE_BACKUP_GATE` is unset. For go-live, configure object storage, run a successful backup, then set `REQUIRE_BACKUP_GATE=true` so deployments are blocked if backup verification fails.
 
 ## Daily Backups
 
@@ -45,7 +46,7 @@ npm run railway:start
 
 The Railway startup runner performs env validation, database connectivity check, migration audit, migration status check, backup verification, migration execution, optional data audit, then starts the server.
 
-It blocks deployment when the latest S3 backup is missing, older than 24 hours, too small, too large, checksum-invalid, when migration files were edited after being applied, or when another migration is already running.
+It always blocks deployment when environment basics, database connectivity, migration audit, or migration locking fail. It blocks on backup verification only when `REQUIRE_BACKUP_GATE=true`; before that, missing object storage logs a warning and allows pilot deploys to start.
 
 Before pushing a new release, check migration status locally or in CI:
 

@@ -35,8 +35,17 @@ describe('deployment and route guardrails', () => {
     expect(railwayStart).toContain("run('preflight'");
     expect(railwayStart).toContain("run('migrations'");
     expect(railwayPreflight).toContain('backup verification gate');
+    expect(railwayPreflight).not.toContain('PRODUCTION_REQUIRED_ENV');
     expect(railwayPreflight).toContain('migration status');
     expect(migrationRunner).toContain('pg_try_advisory_lock');
+  });
+
+  test('backup verification is an explicit Railway production gate, not a pilot startup blocker', () => {
+    const preDeployCheck = readRepoFile('server/scripts/pre-deploy-check.js');
+
+    expect(preDeployCheck).toContain('REQUIRE_BACKUP_GATE');
+    expect(preDeployCheck).toContain('Backup verification is not enforced');
+    expect(preDeployCheck).toContain('Deployment blocked because REQUIRE_BACKUP_GATE=true');
   });
 
   test('readiness endpoint performs real PostgreSQL and required-table checks', () => {
