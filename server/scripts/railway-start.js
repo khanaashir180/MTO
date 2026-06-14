@@ -22,7 +22,6 @@ function run(label, args) {
   }
 }
 
-run('preflight', ['run', 'railway:preflight']);
 run('migrations', ['run', 'migrate']);
 
 if (process.env.RAILWAY_RUN_DATA_AUDIT === 'true') {
